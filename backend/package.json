@@ -4,6 +4,7 @@
   "description": "API для «Цифровий світ класу»",
   "main": "dist/server.js",
   "scripts": {
+    "prestart": "npm run build",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
