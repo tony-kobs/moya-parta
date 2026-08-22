@@ -1,10 +1,12 @@
 # Цифровий світ класу — ланцюг проєкту
 
 > Живий файл стану. Агент **обовʼязково** читає його на старті задачі і **оновлює** після змін.
-> Останнє оновлення: 2026-08-22 (presentation / дерево продукту)
+> Останнє оновлення: 2026-08-22 (README для команди + монорепо)
 >
-> Початкове ТЗ (повний промпт): [`.cursor/ORIGINAL_PROMPT.md`](./ORIGINAL_PROMPT.md)
-> Презентація деревом для команди: [`presentation/index.html`](../presentation/index.html)
+> Початкове ТЗ: [`.cursor/ORIGINAL_PROMPT.md`](./ORIGINAL_PROMPT.md)
+> Презентація: [`presentation/index.html`](../presentation/index.html)
+> GitHub монорепо: https://github.com/tony-kobs/moya-parta
+> Прод: https://moya-parta.vercel.app · API: https://backend-myclassroom.onrender.com
 
 ---
 
