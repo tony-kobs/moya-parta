@@ -19,6 +19,10 @@ import styles from './tasks.module.css';
 
 type Tab = 'homework' | 'tests' | 'review';
 
+function defaultHomeworkDueDate() {
+  return new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+}
+
 const homeworkSchema = z.object({
   title: z.string().min(1, 'Напиши назву завдання'),
   description: z.string().min(1, 'Додай короткий опис'),
@@ -56,6 +60,7 @@ export default function TeacherTasksPage() {
 
 function TasksContent() {
   const [tab, setTab] = useState<Tab>('homework');
+  const [defaultDueDate] = useState(defaultHomeworkDueDate);
   const showToast = useUiStore((state) => state.showToast);
   const queryClient = useQueryClient();
 
@@ -79,7 +84,7 @@ function TasksContent() {
     defaultValues: {
       subject: 'math',
       xpReward: 20,
-      dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      dueDate: defaultDueDate,
       linkedQuizId: '',
     },
   });
@@ -105,7 +110,7 @@ function TasksContent() {
       homeworkForm.reset({
         subject: 'math',
         xpReward: 20,
-        dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+        dueDate: defaultHomeworkDueDate(),
         linkedQuizId: '',
         title: '',
         description: '',

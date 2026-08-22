@@ -17,6 +17,14 @@ import { formatEventRange, toLocalDateTimeInput } from '@/lib/format';
 import type { ClassEvent } from '@/types';
 import styles from './events.module.css';
 
+function defaultEventRange() {
+  const start = Date.now() + 86400000;
+  return {
+    startsAt: toLocalDateTimeInput(new Date(start).toISOString()),
+    endsAt: toLocalDateTimeInput(new Date(start + 1000 * 60 * 60 * 2).toISOString()),
+  };
+}
+
 const schema = z
   .object({
     title: z.string().min(1, 'Напиши назву події'),
@@ -52,6 +60,7 @@ export default function TeacherEventsPage() {
 function EventsContent() {
   const showToast = useUiStore((state) => state.showToast);
   const queryClient = useQueryClient();
+  const [eventDefaults] = useState(defaultEventRange);
 
   const { data, isLoading } = useQuery({
     queryKey: ['teacher-events'],
@@ -65,12 +74,7 @@ function EventsContent() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      startsAt: toLocalDateTimeInput(new Date(Date.now() + 86400000).toISOString()),
-      endsAt: toLocalDateTimeInput(
-        new Date(Date.now() + 86400000 + 1000 * 60 * 60 * 2).toISOString(),
-      ),
-    },
+    defaultValues: eventDefaults,
   });
 
   const createMutation = useMutation({
@@ -85,12 +89,7 @@ function EventsContent() {
       reset({
         title: '',
         description: '',
-        startsAt: toLocalDateTimeInput(
-          new Date(Date.now() + 86400000).toISOString(),
-        ),
-        endsAt: toLocalDateTimeInput(
-          new Date(Date.now() + 86400000 + 1000 * 60 * 60 * 2).toISOString(),
-        ),
+        ...defaultEventRange(),
       });
       void queryClient.invalidateQueries({ queryKey: ['teacher-events'] });
       void queryClient.invalidateQueries({ queryKey: ['teacher-dashboard'] });
