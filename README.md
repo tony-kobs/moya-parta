@@ -1,76 +1,97 @@
-# Цифровий світ класу
+# Моя парта · Цифровий світ класу
 
-Закрите цифрове середовище для учнів 1–4 класів і їхнього вчителя.
+Закритий цифровий клас для учнів **1–4** і їхнього **вчителя**.
 
 > «У кожного є своя парта. У кожного є своє місце в класі.»
 
-## Хто в екосистемі
+Це **не** електронний щоденник і не LMS: акцент на парті дитини, класі, творчості, навчанні, подіях і маленьких перемогах — **без рейтингів між дітьми**.
 
-- **Учитель** — реєструється, створює клас, ділиться кодом/посиланням
-- **Учень** — заходить за кодом класу і привʼязується до вчителя
+---
 
-Батьків і шкільного адміна в MVP немає як окремих кабінетів.
+## Посилання
 
-**Батьки (варіант A):** допомагають дитині зайти за кодом класу на етапі реєстрації. Окремого батьківського режиму немає.
+| Що | URL |
+|----|-----|
+| **Код (монорепо)** | https://github.com/tony-kobs/moya-parta |
+| **Прод · фронт** | https://moya-parta.vercel.app |
+| **Прод · API** | https://backend-myclassroom.onrender.com |
+| **Дерево продукту** | [`presentation/index.html`](./presentation/index.html) |
+| **Рішення / inventory** | [`.cursor/PROJECT_CHAIN.md`](./.cursor/PROJECT_CHAIN.md) |
 
-School Admin не потрібен, поки вчитель сам володіє своїм класом.
+---
 
-## Як працює доступ
+## Хто в продукті (MVP)
 
-1. Вчитель реєструється на `/register`
-2. Створює клас (наприклад, `3-Б`)
-3. Отримує код на кшталт `3B-K7M2` і посилання `/join/3B-K7M2`
-4. Учні переходять за посиланням або вводять код на `/join`
-5. Реєструються (імʼя, логін, пароль, аватар) і потрапляють у клас
+| Роль | Статус |
+|------|--------|
+| **Учитель** | є — клас, код, завдання, тести, перевірка, події, чат, дошка |
+| **Учень** | є — парта, клас, навчання, чат, перемоги |
+| **Батьки** | **немає кабінету** — лише допомагають на вході (варіант A) |
+| **School admin** | **немає** в MVP |
 
-## Структура
+### Ланцюг доступу
 
 ```text
-/
-├── frontend/       # Next.js (App Router) + TypeScript + CSS Modules
-├── backend/        # Express + TypeScript (routes → controllers → services)
-├── presentation/   # Дерево продукту для команди
-└── .cursor/        # Ланцюг рішень і правила агента
+Учитель /register
+  → створює клас
+  → код + /join/КОД
+  → учень (або з допомогою батька) реєструється
+  → onboarding
+  → Моя парта
 ```
 
-## GitHub
+- Пости на дошці зʼявляються **одразу** (учитель може **приховати**).
+- Чат: клас + особисті **лише всередині свого класу**.
 
-- **Монорепо (уся папка):** https://github.com/tony-kobs/moya-parta
-- Окремо для деплою:
-  - Backend: https://github.com/tony-kobs/backend-myclassroom
-  - Frontend: https://github.com/tony-kobs/frontend-myclassroom
+---
 
-## Швидкий старт
+## Структура репо
+
+```text
+moya-parta/
+├── frontend/        Next.js (App Router), TS, CSS Modules, TanStack Query, Zustand
+├── backend/         Express + TS (GoIT: routes → controllers → services), in-memory seed
+├── presentation/    HTML-презентація дерева продукту для команди
+├── render.yaml      підказка для Render (rootDir: backend)
+└── .cursor/         PROJECT_CHAIN, ORIGINAL_PROMPT, правила агента
+```
+
+**Деплой з одного репо:**
+
+| Хостинг | Root Directory | Призначення |
+|---------|----------------|-------------|
+| **Vercel** | `frontend` | сайт |
+| **Render** | `backend` | API |
+
+---
+
+## План роботи для команди — як почати
+
+### 1. Отримай доступ
+
+1. Попроси власника (`@tony-kobs`) додати тебе **Collaborator** у репо `moya-parta`.
+2. PR можуть відкривати **лише collaborators**.
+3. Merge у `master` — **тільки після ревʼю власника**.
+
+### 2. Клонуй і постав залежності
 
 ```bash
-cd backend && npm install && npm run dev
-cd frontend && npm install && npm run dev
+git clone https://github.com/tony-kobs/moya-parta.git
+cd moya-parta
+
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
 ```
 
-- App: http://localhost:3000
-- API: http://localhost:4000
-
-## Demo
-
-Пароль: `demo1234`
-
-| Роль | Логін | Код класу |
-|------|-------|-----------|
-| Учень (Марійка) | student@example.com | уже в класі |
-| Учитель | teacher@example.com | `3B-DEMO` |
-
-Новий учень може зайти на `/join/3B-DEMO` і зареєструватися в демо-клас.
-
-## Environment
-
-Скопіюй приклади:
+### 3. Env (локально)
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-### backend/.env
+`backend/.env` (приклад):
+
 ```env
 PORT=4000
 JWT_SECRET=demo-digital-classroom-secret-key
@@ -78,7 +99,106 @@ CORS_ORIGIN=http://localhost:3000
 NODE_ENV=development
 ```
 
-### frontend/.env.local
+`frontend/.env.local`:
+
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
+
+> Секрети (`.env`, `.env.local`) у git **не комітимо**.
+
+### 4. Запусти локально (два термінали)
+
+```bash
+# термінал 1
+cd backend && npm run dev
+
+# термінал 2
+cd frontend && npm run dev
+```
+
+- Сайт: http://localhost:3000  
+- API: http://localhost:4000/api/health  
+
+### 5. Перевір демо
+
+Пароль для всіх демо-акаунтів: **`demo1234`**
+
+| Роль | Логін | Нотатка |
+|------|-------|---------|
+| Учень | `student@example.com` | уже в класі |
+| Учитель | `teacher@example.com` | код класу `3B-DEMO` |
+
+Новий учень: `/join/3B-DEMO`.
+
+### 6. Як вносити зміни (щоденний ритм)
+
+```text
+1. git checkout master && git pull
+2. git checkout -b feature/коротка-назва
+3. Працюй у frontend/ або backend/
+4. Перевір локально (обидва сервери)
+5. git add → commit → push
+6. Відкрий Pull Request у moya-parta
+7. Дочекайся ревʼю власника → merge
+8. Після merge: Vercel/Render самі задеплоять (якщо Git підключений до moya-parta)
+```
+
+**Правила команди**
+
+- Не пуш напряму в `master` (окрім власника в екстрених випадках).
+- Одна гілка ≈ одна зрозуміла задача.
+- UI-тексти — українською, простою мовою.
+- Не додаємо батьківський dashboard / school admin / рейтинги дітей без явного рішення в `PROJECT_CHAIN`.
+
+### 7. Де дивитись «що вже є / що далі»
+
+1. [`.cursor/PROJECT_CHAIN.md`](./.cursor/PROJECT_CHAIN.md) — актуальні рішення й inventory.  
+2. [`presentation/index.html`](./presentation/index.html) — дерево: головна → учитель → учень.  
+3. [`.cursor/ORIGINAL_PROMPT.md`](./.cursor/ORIGINAL_PROMPT.md) — початкове ТЗ (історія); **канон рішень** — лише PROJECT_CHAIN.
+
+### 8. Якщо чіпаєш деплой
+
+| Змінна | Де | Приклад |
+|--------|-----|---------|
+| `NEXT_PUBLIC_API_URL` | Vercel | `https://backend-myclassroom.onrender.com/api` |
+| `CORS_ORIGIN` | Render | `https://moya-parta.vercel.app` (**без** `/` в кінці) |
+| `JWT_SECRET` | Render | довгий унікальний рядок |
+| Root Directory | Vercel / Render | `frontend` / `backend` |
+
+Після зміни env — Redeploy відповідного сервісу.
+
+---
+
+## Стек
+
+- **Frontend:** Next.js App Router, TypeScript, CSS Modules, TanStack Query, Zustand  
+- **Backend:** Express, TypeScript, Zod, JWT (структура GoIT)  
+- **Дані зараз:** in-memory seed (після рестарту API демо-дані скидаються)  
+
+---
+
+## Що вже вміє MVP (коротко)
+
+**Учитель:** клас + invite, завдання/тести (база + свої), перевірка з коментарем, події (старт/кінець → ревʼю на дошку), чат, приховати пост, бейджі «нове».
+
+**Учень:** Моя парта, клас/дошка, навчання (ДЗ, тести, квести), чат, події, перемоги/рюкзак, сповіщення.
+
+Детальніше — у `PROJECT_CHAIN.md` і презентації.
+
+---
+
+## Корисні команди
+
+```bash
+npm run dev:backend      # з кореня монорепо
+npm run dev:frontend
+npm run build:backend
+npm run build:frontend
+```
+
+Backend окремо:
+
+```bash
+cd backend && npm run build && npm start
 ```

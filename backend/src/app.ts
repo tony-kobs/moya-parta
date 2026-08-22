@@ -12,10 +12,15 @@ import teacherRoutes from './routes/teacher.routes';
 
 const app = express();
 
+const corsOrigin = (process.env.CORS_ORIGIN ?? 'http://localhost:3000').replace(
+  /\/$/,
+  '',
+);
+
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    origin: corsOrigin,
     credentials: true,
   }),
 );
