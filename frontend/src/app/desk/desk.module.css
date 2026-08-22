@@ -1,0 +1,151 @@
+.page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.hero {
+  background: var(--color-surface);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroMain {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.hello {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.className {
+  margin: 0 0 var(--space-4);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.decor {
+  display: none;
+  gap: var(--space-3);
+  font-size: 1.4rem;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.column {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.sectionHead h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.link {
+  color: #3552b8;
+  font-weight: 700;
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.goalText {
+  margin: 0 0 var(--space-3);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.goalXp {
+  display: inline-flex;
+  background: var(--color-warm-soft);
+  color: #8a6a16;
+  font-weight: 800;
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+}
+
+.classPreview {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.postPreview {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.reactionsPreview {
+  color: var(--color-text-muted);
+}
+
+.eventBox {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.eventBox h3 {
+  margin: 0;
+}
+
+.eventBox p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.wins {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.win {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f7f8fc;
+}
+
+.quickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (min-width: 1028px) {
+  .grid {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: start;
+  }
+
+  .decor {
+    display: flex;
+  }
+}

@@ -1,0 +1,35 @@
+.wrap {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.track {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: #eef1f8;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width var(--transition-normal);
+}
+
+.primary {
+  background: linear-gradient(90deg, #6c8cf5, #8aa5f8);
+}
+
+.secondary {
+  background: linear-gradient(90deg, #7bc6a4, #97d4b8);
+}
+
+.warm {
+  background: linear-gradient(90deg, #f4c95d, #f7d78a);
+}

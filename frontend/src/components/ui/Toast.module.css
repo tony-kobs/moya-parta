@@ -1,0 +1,38 @@
+.host {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(420px, calc(100% - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  padding: 14px 18px;
+  border-radius: var(--radius-pill);
+  text-align: center;
+  font-weight: 700;
+  box-shadow: var(--shadow-card);
+}
+
+.success {
+  background: #e8f6ef;
+  color: #2f6b55;
+}
+
+.info {
+  background: var(--color-primary-soft);
+  color: #3552b8;
+}
+
+.error {
+  background: #fdeeee;
+  color: #9a4545;
+}
+
+@media (min-width: 1028px) {
+  .host {
+    bottom: 28px;
+  }
+}

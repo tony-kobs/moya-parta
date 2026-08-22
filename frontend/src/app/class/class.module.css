@@ -1,0 +1,67 @@
+.page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.kicker {
+  margin: 0 0 var(--space-2);
+  color: #3552b8;
+  font-weight: 800;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.teacher {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.students {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.goal {
+  margin: var(--space-3) 0;
+  font-weight: 700;
+}
+
+.celebration {
+  margin: var(--space-3) 0 0;
+  font-weight: 800;
+  color: #2f6b55;
+}
+
+.board,
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.board h2,
+.sideGrid h2 {
+  margin: 0 0 var(--space-3);
+}
+
+.sideGrid {
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (min-width: 1028px) {
+  .sideGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

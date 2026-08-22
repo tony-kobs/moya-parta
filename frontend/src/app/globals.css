@@ -1,0 +1,15 @@
+body {
+  font-family: var(--font-nunito-sans), var(--font-family);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+p {
+  line-height: 1.55;
+}

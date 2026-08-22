@@ -1,0 +1,22 @@
+.wrap {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text);
+  font-size: 1.15rem;
+}
+
+.description {
+  margin: 0;
+  max-width: 320px;
+  margin-inline: auto;
+}

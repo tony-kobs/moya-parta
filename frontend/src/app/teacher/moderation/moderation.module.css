@@ -1,0 +1,20 @@
+.page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.lead {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.item {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

@@ -1,0 +1,29 @@
+# dependencies & build
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+build/
+coverage/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# nested standalone repo metadata (окремі frontend/backend GitHub)
+**/.git-standalone/
+
+# tooling
+.vercel
+*.tsbuildinfo
+.turbo

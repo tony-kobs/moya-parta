@@ -1,0 +1,10 @@
+.page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 1028px) {
+  .page {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

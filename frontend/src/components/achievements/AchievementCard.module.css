@@ -1,0 +1,44 @@
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  text-align: center;
+  min-height: 190px;
+}
+
+.locked {
+  opacity: 0.72;
+  background: #f8f9fd;
+}
+
+.icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-warm-soft);
+  font-size: 1.8rem;
+}
+
+.card h3 {
+  margin: var(--space-2) 0 0;
+  font-size: 1.05rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.category {
+  margin-top: auto;
+  color: #3552b8;
+  font-weight: 700;
+  font-size: 0.82rem;
+}

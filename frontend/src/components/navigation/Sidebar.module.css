@@ -1,0 +1,111 @@
+.sidebar {
+  display: none;
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  padding: 28px 16px 20px;
+  background: #ffffff;
+  border-right: 1px solid rgba(38, 50, 56, 0.06);
+  flex-direction: column;
+  gap: 28px;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-soft);
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.brand strong {
+  display: block;
+  font-size: 1.02rem;
+  color: #243447;
+  letter-spacing: -0.02em;
+}
+
+.brand p {
+  margin: 2px 0 0;
+  color: #8a94a6;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.nav {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  align-content: start;
+}
+
+.link,
+.logout,
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 16px;
+  color: #6b7585;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+}
+
+.iconWrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.link:hover,
+.profile:hover,
+.logout:hover {
+  background: #f4f6fb;
+  color: #243447;
+}
+
+.active {
+  background: var(--color-primary-soft);
+  color: #3552b8;
+}
+
+.footer {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(38, 50, 56, 0.06);
+}
+
+.profile {
+  color: #243447;
+}
+
+.logout {
+  color: #6b7585;
+}
+
+@media (min-width: 1028px) {
+  .sidebar {
+    display: flex;
+  }
+}

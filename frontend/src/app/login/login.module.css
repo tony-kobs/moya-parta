@@ -1,0 +1,98 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(184, 221, 245, 0.4), transparent 30%),
+    radial-gradient(circle at 80% 10%, rgba(233, 166, 184, 0.25), transparent 28%),
+    var(--color-background);
+}
+
+.card {
+  width: min(440px, 100%);
+  background: var(--color-surface);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-8) var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--color-primary-soft);
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.lead {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.field input {
+  min-height: 52px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(38, 50, 56, 0.12);
+  padding: 0 16px;
+  background: #fbfcfe;
+}
+
+.field em {
+  font-style: normal;
+  color: #9a4545;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.error {
+  margin: 0;
+  color: #9a4545;
+  font-weight: 700;
+}
+
+.demos {
+  margin-top: var(--space-2);
+}
+
+.demos p {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.demoRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.demoBtn {
+  border: none;
+  background: #f3f5fb;
+  color: #3552b8;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  min-height: 40px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.hint {
+  margin-top: var(--space-3) !important;
+}

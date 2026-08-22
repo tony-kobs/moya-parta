@@ -1,0 +1,58 @@
+.page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.page h2 {
+  margin: 0 0 var(--space-3);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.quizHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.quizHead h3 {
+  margin: 0;
+}
+
+.quizHead p {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+}
+
+.missedList {
+  margin: var(--space-3) 0;
+  padding-left: 1.2rem;
+  color: var(--color-text-muted);
+}
+
+.placeholder {
+  margin: 0;
+  color: #3552b8;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -1,0 +1,142 @@
+.page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(38, 50, 56, 0.12);
+  background: #fbfcfe;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: #3552b8;
+  border-color: #3552b8;
+  color: #fff;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.form input,
+.form textarea,
+.form select,
+.label select,
+.label textarea,
+.reviewCard textarea {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(38, 50, 56, 0.12);
+  padding: 12px 14px;
+  background: #fbfcfe;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form em {
+  color: #9a4545;
+  font-style: normal;
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.list h2 {
+  margin: 0;
+}
+
+.itemRow {
+  display: grid;
+  gap: 10px;
+}
+
+.bank {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.bankGroup h3 {
+  margin: 0 0 10px;
+}
+
+.bankItem,
+.quizCard {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f7f8fc;
+  margin-bottom: 8px;
+}
+
+.bankItem p,
+.quizCard p {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+}
+
+.quizCard h3 {
+  margin: 8px 0 0;
+}
+
+.fieldset {
+  border: 1.5px solid rgba(38, 50, 56, 0.1);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.fieldset legend {
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.reviewCard {
+  display: grid;
+  gap: 12px;
+}
+
+.answer {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #eef2ff;
+  border-left: 4px solid #3552b8;
+}
+
+.reviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
