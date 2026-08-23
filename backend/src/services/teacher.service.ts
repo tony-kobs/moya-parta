@@ -8,7 +8,7 @@ import {
   isHomeworkActive,
   isHomeworkEnded,
 } from '../helpers/homework';
-import type { AuthUser, ClassEvent, Quest } from '../types';
+import type { AuthUser, ClassEvent, ClassRoom, Grade, Quest } from '../types';
 import * as postsService from './posts.service';
 
 export const getTeacherDashboard = (teacher: AuthUser) => {
@@ -327,7 +327,7 @@ export const publishEventReview = (
 
 export const createClassForTeacher = (
   teacher: AuthUser,
-  payload: { name: string },
+  payload: { name: string; grade: Grade },
 ) => {
   if (teacher.classId) {
     const existing = db.classes.find((item) => item.id === teacher.classId);
@@ -337,10 +337,11 @@ export const createClassForTeacher = (
   }
 
   const inviteCode = createInviteCode(payload.name);
-  const classRoom = {
+  const classRoom: ClassRoom = {
     id: createId('class'),
     schoolId: teacher.schoolId,
     name: payload.name.trim(),
+    grade: payload.grade,
     teacherId: teacher.id,
     inviteCode,
     studentIds: [] as string[],

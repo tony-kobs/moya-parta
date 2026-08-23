@@ -140,6 +140,14 @@ export interface Quiz {
   templateId?: string;
 }
 
+export interface QuestQuestion {
+  id: string;
+  text: string;
+  options: string[];
+}
+
+export type Grade = 1 | 2 | 3 | 4;
+
 export interface Quest {
   id: string;
   classId: string;
@@ -150,6 +158,9 @@ export interface Quest {
   totalSteps: number;
   currentStep?: number;
   completed?: boolean;
+  questions?: QuestQuestion[];
+  /** Present only for the grade-driven math quest; the student's own class grade. */
+  grade?: Grade;
 }
 
 export interface Achievement {
