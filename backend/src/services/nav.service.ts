@@ -1,6 +1,10 @@
 import { db } from '../data/seed';
 import type { AuthUser } from '../types';
 import { eventEndsAt } from '../helpers/events';
+import {
+  homeworkEndsAt,
+  isHomeworkActive,
+} from '../helpers/homework';
 
 export type NavSection =
   | 'chat'
@@ -106,11 +110,12 @@ const countStudentLearning = (user: AuthUser): number => {
       continue;
     }
 
-    if (!submission || submission.status === 'new') {
-      const due = new Date(homework.dueDate).getTime();
-      if (due < now + day * 2) {
-        count += 1;
-      }
+    if (
+      (!submission || submission.status === 'new') &&
+      isHomeworkActive(homework, now) &&
+      new Date(homeworkEndsAt(homework)).getTime() < now + day * 2
+    ) {
+      count += 1;
     }
   }
 

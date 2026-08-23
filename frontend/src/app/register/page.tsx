@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/Button';
+import { BrandMark } from '@/components/brand/BrandMark';
 import {
   AvatarPicker,
   type AvatarOption,
@@ -62,9 +63,7 @@ export default function RegisterTeacherPage() {
   return (
     <main className={styles.page}>
       <form className={styles.card} onSubmit={onSubmit}>
-        <div className={styles.logo} aria-hidden="true">
-          {avatarEmoji}
-        </div>
+        <BrandMark href="/" size="lg" />
         <h1>Створити кабінет учителя</h1>
         <p className={styles.lead}>
           Після реєстрації ти створиш клас і отримаєш код для учнів.

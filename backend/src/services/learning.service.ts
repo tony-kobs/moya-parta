@@ -1,6 +1,14 @@
 import { db } from '../data/seed';
 import { createId } from '../helpers/response';
 import { enrichEvent, getEventLifecycle } from '../helpers/events';
+import {
+  canStudentSubmitHomework,
+  homeworkEndsAt,
+  homeworkStartsAt,
+  isHomeworkActive,
+  isHomeworkEnded,
+  isHomeworkStarted,
+} from '../helpers/homework';
 import { addXp } from './student.service';
 import type { AuthUser, Homework, Quiz } from '../types';
 
@@ -11,7 +19,8 @@ export const getLearningForStudent = (studentId: string, classId: string) => {
       const submission = db.homeworkSubmissions.find(
         (sub) => sub.homeworkId === hw.id && sub.studentId === studentId,
       );
-      const due = new Date(hw.dueDate).getTime();
+      const ends = new Date(homeworkEndsAt(hw)).getTime();
+      const starts = new Date(homeworkStartsAt(hw)).getTime();
       const now = Date.now();
       let bucket: 'today' | 'waiting' | 'later' | 'done' = 'later';
 
@@ -19,19 +28,38 @@ export const getLearningForStudent = (studentId: string, classId: string) => {
         bucket = 'waiting';
       } else if (submission && submission.status !== 'new') {
         bucket = 'done';
-      } else if (due < now) {
+      } else if (!isHomeworkStarted(hw, now)) {
+        bucket = 'later';
+      } else if (isHomeworkEnded(hw, now)) {
         bucket = 'waiting';
-      } else if (due - now < 1000 * 60 * 60 * 24) {
+      } else if (ends - now < 1000 * 60 * 60 * 24) {
+        bucket = 'today';
+      } else if (starts <= now) {
         bucket = 'today';
       }
 
       return {
         ...hw,
+        startsAt: homeworkStartsAt(hw),
+        endsAt: homeworkEndsAt(hw),
+        dueDate: homeworkEndsAt(hw),
         status: submission?.status ?? 'new',
         teacherComment: submission?.teacherComment,
         bucket,
         linkedQuizId: hw.linkedQuizId,
+        ended: isHomeworkEnded(hw, now),
+        active: isHomeworkActive(hw, now),
       };
+    })
+    .filter((hw) => {
+      if (hw.status === 'revise' || hw.status === 'checking') {
+        return true;
+      }
+      if (hw.status === 'reviewed' || hw.status === 'done') {
+        return true;
+      }
+      // Hide ended from open assignment list
+      return !hw.ended && (hw.active || hw.bucket === 'later');
     });
 
   const quizzes = db.quizzes.filter((quiz) => quiz.classId === classId);
@@ -69,6 +97,10 @@ export const submitHomework = (
   let submission = db.homeworkSubmissions.find(
     (item) => item.homeworkId === homeworkId && item.studentId === studentId,
   );
+
+  if (!canStudentSubmitHomework(homework, submission?.status)) {
+    return { error: 'CLOSED' as const };
+  }
 
   if (!submission) {
     submission = {
@@ -294,17 +326,40 @@ export const getEvents = (classId: string) => {
 
 export const createHomework = (
   teacher: AuthUser,
-  payload: Omit<Homework, 'id' | 'classId' | 'createdBy'>,
+  payload: {
+    subject: Homework['subject'];
+    title: string;
+    description: string;
+    startsAt: string;
+    endsAt: string;
+    dueDate?: string;
+    xpReward: number;
+    linkedQuizId?: string;
+  },
 ) => {
   if (!teacher.classId) {
     throw new Error('NO_CLASS');
+  }
+
+  const startsAt = payload.startsAt;
+  const endsAt = payload.endsAt;
+
+  if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+    throw new Error('INVALID_RANGE');
   }
 
   const homework: Homework = {
     id: createId('hw'),
     classId: teacher.classId,
     createdBy: teacher.id,
-    ...payload,
+    subject: payload.subject,
+    title: payload.title,
+    description: payload.description,
+    startsAt,
+    endsAt,
+    dueDate: endsAt,
+    xpReward: payload.xpReward,
+    linkedQuizId: payload.linkedQuizId,
   };
 
   db.homeworks.unshift(homework);
@@ -323,6 +378,120 @@ export const createHomework = (
   });
 
   return homework;
+};
+
+export const getHomeworkAnalytics = (homeworkId: string, teacher: AuthUser) => {
+  const homework = db.homeworks.find(
+    (item) => item.id === homeworkId && item.classId === teacher.classId,
+  );
+
+  if (!homework || !teacher.classId) {
+    return null;
+  }
+
+  const classRoom = db.classes.find((item) => item.id === teacher.classId);
+  if (!classRoom) {
+    return null;
+  }
+
+  const quiz = homework.linkedQuizId
+    ? db.quizzes.find((item) => item.id === homework.linkedQuizId)
+    : null;
+
+  const participants = classRoom.studentIds.map((studentId) => {
+    const student = db.users.find((item) => item.id === studentId);
+    const submission = db.homeworkSubmissions.find(
+      (item) => item.homeworkId === homework.id && item.studentId === studentId,
+    );
+    const attempt = quiz
+      ? db.quizAttempts
+          .filter(
+            (item) => item.quizId === quiz.id && item.studentId === studentId,
+          )
+          .sort(
+            (a, b) =>
+              new Date(b.completedAt).getTime() -
+              new Date(a.completedAt).getTime(),
+          )[0]
+      : undefined;
+
+    const quizPercent =
+      attempt && attempt.total > 0
+        ? Math.round((attempt.score / attempt.total) * 100)
+        : null;
+
+    return {
+      studentId,
+      displayName: student?.displayName ?? 'Учень',
+      avatarEmoji: student?.avatarEmoji ?? '🙂',
+      avatarColor: student?.avatarColor ?? '#B8DDF5',
+      status: submission?.status ?? 'not_started',
+      submittedAt: submission?.submittedAt,
+      answerPreview: submission?.answer?.slice(0, 120),
+      quizScore: attempt?.score ?? null,
+      quizTotal: attempt?.total ?? null,
+      quizPercent,
+      participated: Boolean(
+        submission && submission.status !== 'new',
+      ) || Boolean(attempt),
+    };
+  });
+
+  const ranked = quiz
+    ? [...participants]
+        .filter((item) => item.quizPercent !== null)
+        .sort((a, b) => (b.quizPercent ?? 0) - (a.quizPercent ?? 0))
+        .map((item, index) => ({ ...item, rank: index + 1 }))
+    : [];
+
+  const rankedMap = new Map(ranked.map((item) => [item.studentId, item.rank]));
+  const withRank = participants.map((item) => ({
+    ...item,
+    rank: rankedMap.get(item.studentId) ?? null,
+  }));
+
+  const completedQuiz = ranked.length;
+  const averagePercent =
+    completedQuiz > 0
+      ? Math.round(
+          ranked.reduce((sum, item) => sum + (item.quizPercent ?? 0), 0) /
+            completedQuiz,
+        )
+      : null;
+
+  return {
+    homework: {
+      ...homework,
+      startsAt: homeworkStartsAt(homework),
+      endsAt: homeworkEndsAt(homework),
+      dueDate: homeworkEndsAt(homework),
+      ended: isHomeworkEnded(homework),
+      active: isHomeworkActive(homework),
+      isQuizLinked: Boolean(quiz),
+    },
+    studentsTotal: classRoom.studentIds.length,
+    participatedCount: withRank.filter((item) => item.participated).length,
+    checkingCount: withRank.filter((item) => item.status === 'checking').length,
+    participants: withRank.sort((a, b) => {
+      if (quiz) {
+        return (b.quizPercent ?? -1) - (a.quizPercent ?? -1);
+      }
+      if (a.participated !== b.participated) {
+        return a.participated ? -1 : 1;
+      }
+      return a.displayName.localeCompare(b.displayName, 'uk');
+    }),
+    quizSummary: quiz
+      ? {
+          quizId: quiz.id,
+          quizTitle: quiz.title,
+          questionsCount: quiz.questions.length,
+          completedCount: completedQuiz,
+          averagePercent,
+          topScorers: ranked.slice(0, 5),
+        }
+      : null,
+  };
 };
 
 export const deleteHomework = (homeworkId: string, teacher: AuthUser) => {

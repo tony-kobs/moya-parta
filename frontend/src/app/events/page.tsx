@@ -51,6 +51,9 @@ function EventsContent() {
 
   return (
     <div className={styles.page}>
+      <p className={styles.lead}>
+        Усі події класу — можна приєднатися і стежити за прогресом.
+      </p>
       {data.map((event) => (
         <EventCard
           key={event.id}

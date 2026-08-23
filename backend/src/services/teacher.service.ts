@@ -2,6 +2,12 @@ import { db } from '../data/seed';
 import { createId } from '../helpers/response';
 import { createInviteCode, normalizeInviteCode } from './auth.service';
 import { enrichEvent, eventEndsAt, eventStartsAt } from '../helpers/events';
+import {
+  homeworkEndsAt,
+  homeworkStartsAt,
+  isHomeworkActive,
+  isHomeworkEnded,
+} from '../helpers/homework';
 import type { AuthUser, ClassEvent, Quest } from '../types';
 import * as postsService from './posts.service';
 
@@ -88,7 +94,38 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
       nextEventEndsAt: nextEvent ? eventEndsAt(nextEvent) : null,
       pendingPosts,
     },
-    homeworks: db.homeworks.filter((hw) => hw.classId === teacher.classId),
+    homeworks: db.homeworks
+      .filter((hw) => hw.classId === teacher.classId)
+      .map((hw) => ({
+        ...hw,
+        startsAt: homeworkStartsAt(hw),
+        endsAt: homeworkEndsAt(hw),
+        dueDate: homeworkEndsAt(hw),
+        active: isHomeworkActive(hw),
+        ended: isHomeworkEnded(hw),
+      })),
+    activeHomeworks: db.homeworks
+      .filter(
+        (hw) => hw.classId === teacher.classId && !isHomeworkEnded(hw),
+      )
+      .map((hw) => ({
+        ...hw,
+        startsAt: homeworkStartsAt(hw),
+        endsAt: homeworkEndsAt(hw),
+        dueDate: homeworkEndsAt(hw),
+        active: isHomeworkActive(hw),
+        ended: false,
+      })),
+    endedHomeworks: db.homeworks
+      .filter((hw) => hw.classId === teacher.classId && isHomeworkEnded(hw))
+      .map((hw) => ({
+        ...hw,
+        startsAt: homeworkStartsAt(hw),
+        endsAt: homeworkEndsAt(hw),
+        dueDate: homeworkEndsAt(hw),
+        active: false,
+        ended: true,
+      })),
     checkingWorks: checkingWorks.map((sub) => {
       const student = db.users.find((user) => user.id === sub.studentId);
       const homework = db.homeworks.find((hw) => hw.id === sub.homeworkId);
@@ -96,6 +133,7 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
         ...sub,
         studentName: student?.displayName,
         homeworkTitle: homework?.title,
+        homeworkId: homework?.id,
         linkedQuizId: homework?.linkedQuizId,
         subject: homework?.subject,
       };

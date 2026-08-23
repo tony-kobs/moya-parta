@@ -1,0 +1,142 @@
+.card {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.compact {
+  padding: 10px 12px 12px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titleRow h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.action {
+  flex-shrink: 0;
+}
+
+.body {
+  min-width: 0;
+}
+
+/* tones */
+.today {
+  background: var(--sec-today-grad);
+  border-color: rgba(31, 122, 118, 0.14);
+}
+.today::before {
+  background: var(--sec-today);
+}
+
+.tasks {
+  background: var(--sec-tasks-grad);
+  border-color: rgba(196, 132, 26, 0.16);
+}
+.tasks::before {
+  background: var(--sec-tasks);
+}
+
+.events {
+  background: var(--sec-events-grad);
+  border-color: rgba(47, 126, 168, 0.16);
+}
+.events::before {
+  background: var(--sec-events);
+}
+
+.board {
+  background: var(--sec-board-grad);
+  border-color: rgba(107, 123, 184, 0.16);
+}
+.board::before {
+  background: var(--sec-board);
+}
+
+.class {
+  background: var(--sec-class-grad);
+  border-color: rgba(61, 155, 122, 0.16);
+}
+.class::before {
+  background: var(--sec-class);
+}
+
+.learning {
+  background: var(--sec-learning-grad);
+  border-color: rgba(95, 159, 116, 0.16);
+}
+.learning::before {
+  background: var(--sec-learning);
+}
+
+.wins {
+  background: var(--sec-wins-grad);
+  border-color: rgba(201, 162, 39, 0.18);
+}
+.wins::before {
+  background: var(--sec-wins);
+}
+
+.invite {
+  background: var(--sec-invite-grad);
+  border-color: rgba(31, 122, 118, 0.14);
+}
+.invite::before {
+  background: var(--sec-invite);
+}
+
+.chat {
+  background: var(--sec-chat-grad);
+  border-color: rgba(61, 143, 158, 0.16);
+}
+.chat::before {
+  background: var(--sec-chat);
+}
+
+@media (min-width: 768px) {
+  .compact {
+    padding: 12px 14px 14px;
+  }
+
+  .titleRow h2 {
+    font-size: 1rem;
+  }
+}

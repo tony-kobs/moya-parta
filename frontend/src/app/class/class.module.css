@@ -1,67 +1,199 @@
-.page {
+﻿.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.page h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.overview {
   display: grid;
-  gap: var(--space-5);
+  gap: 22px;
 }
 
 .hero {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: 16px;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .kicker {
-  margin: 0 0 var(--space-2);
-  color: #3552b8;
+  margin: 0 0 8px;
+  color: var(--color-primary-strong);
   font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
 }
 
 .teacher {
-  margin: var(--space-2) 0 0;
+  margin: 8px 0 0;
   color: var(--color-text-muted);
 }
 
 .students {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 8px;
+}
+
+.goalBlock {
+  display: grid;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(38, 50, 56, 0.1);
 }
 
 .goal {
-  margin: var(--space-3) 0;
+  margin: 0;
   font-weight: 700;
+  color: var(--color-text-muted);
 }
 
 .celebration {
-  margin: var(--space-3) 0 0;
+  margin: 0;
   font-weight: 800;
   color: #2f6b55;
 }
 
-.board,
-.stack {
+.pulse {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
   display: grid;
-  gap: var(--space-4);
+  gap: 16px;
 }
 
-.board h2,
-.sideGrid h2 {
-  margin: 0 0 var(--space-3);
+.pulseToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  color: var(--color-text);
+  text-align: left;
 }
 
-.sideGrid {
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.18s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.pulseBody {
   display: grid;
-  gap: var(--space-5);
+  gap: 12px;
 }
 
-@media (min-width: 1028px) {
-  .sideGrid {
-    grid-template-columns: 1fr 1fr;
-  }
+.pulseEmpty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.pulseItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--color-primary-soft);
+}
+
+.pulseEmoji {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.pulseCopy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pulseCopy strong {
+  font-size: 1rem;
+}
+
+.pulseCopy span {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.pulseJoin {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.pulseJoin:disabled {
+  opacity: 0.65;
+  cursor: default;
+  background: var(--color-secondary-soft);
+  color: var(--color-primary-strong);
+}
+
+.pulseMore {
+  justify-self: start;
+  margin-top: 2px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-primary-strong);
+  text-decoration: none;
+}
+
+.pulseMore:hover {
+  text-decoration: underline;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionHead {
+  display: grid;
+  gap: 8px;
+}
+
+.boardList {
+  display: grid;
+  gap: 18px;
 }

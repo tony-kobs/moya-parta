@@ -12,25 +12,41 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HomeworkCard } from '@/components/learning/HomeworkCard';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { toLocalDateTimeInput } from '@/lib/format';
 import { teacherApi } from '@/services/api';
 import { useUiStore } from '@/store/uiStore';
-import { SUBJECT_LABELS, type Subject } from '@/types';
+import {
+  SUBJECT_LABELS,
+  type Homework,
+  type HomeworkAnalytics,
+  type Subject,
+} from '@/types';
 import styles from './tasks.module.css';
 
 type Tab = 'homework' | 'tests' | 'review';
 
-function defaultHomeworkDueDate() {
-  return new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+function defaultHomeworkWindow() {
+  const now = Date.now();
+  return {
+    startsAt: toLocalDateTimeInput(new Date(now).toISOString()),
+    endsAt: toLocalDateTimeInput(new Date(now + 86400000 * 2).toISOString()),
+  };
 }
 
-const homeworkSchema = z.object({
-  title: z.string().min(1, 'Напиши назву завдання'),
-  description: z.string().min(1, 'Додай короткий опис'),
-  subject: z.enum(['math', 'ukrainian', 'reading', 'science', 'art', 'other']),
-  dueDate: z.string().min(1),
-  xpReward: z.coerce.number().min(5).max(100),
-  linkedQuizId: z.string().optional(),
-});
+const homeworkSchema = z
+  .object({
+    title: z.string().min(1, 'Напиши назву завдання'),
+    description: z.string().min(1, 'Додай короткий опис'),
+    subject: z.enum(['math', 'ukrainian', 'reading', 'science', 'art', 'other']),
+    startsAt: z.string().min(1, 'Вкажи початок'),
+    endsAt: z.string().min(1, 'Вкажи кінець'),
+    xpReward: z.coerce.number().min(5).max(100),
+    linkedQuizId: z.string().optional(),
+  })
+  .refine((values) => new Date(values.endsAt) > new Date(values.startsAt), {
+    message: 'Кінець має бути пізніше за початок',
+    path: ['endsAt'],
+  });
 
 type HomeworkForm = z.infer<typeof homeworkSchema>;
 
@@ -50,6 +66,15 @@ const quizSchema = z.object({
 
 type QuizForm = z.infer<typeof quizSchema>;
 
+const submissionStatusLabel: Record<string, string> = {
+  not_started: 'Не почав',
+  new: 'Не здано',
+  checking: 'На перевірці',
+  done: 'Здано',
+  reviewed: 'Прийнято',
+  revise: 'На доопрацювання',
+};
+
 export default function TeacherTasksPage() {
   return (
     <AppShell title="Завдання" allowedRoles={['teacher']}>
@@ -60,7 +85,8 @@ export default function TeacherTasksPage() {
 
 function TasksContent() {
   const [tab, setTab] = useState<Tab>('homework');
-  const [defaultDueDate] = useState(defaultHomeworkDueDate);
+  const [defaultWindow] = useState(defaultHomeworkWindow);
+  const [analyticsId, setAnalyticsId] = useState<string | null>(null);
   const showToast = useUiStore((state) => state.showToast);
   const queryClient = useQueryClient();
 
@@ -79,12 +105,19 @@ function TasksContent() {
     queryFn: teacherApi.getQuizzes,
   });
 
+  const analyticsQuery = useQuery({
+    queryKey: ['homework-analytics', analyticsId],
+    queryFn: () => teacherApi.getHomeworkAnalytics(analyticsId!),
+    enabled: Boolean(analyticsId),
+  });
+
   const homeworkForm = useForm<HomeworkForm>({
     resolver: zodResolver(homeworkSchema),
     defaultValues: {
       subject: 'math',
       xpReward: 20,
-      dueDate: defaultDueDate,
+      startsAt: defaultWindow.startsAt,
+      endsAt: defaultWindow.endsAt,
       linkedQuizId: '',
     },
   });
@@ -103,14 +136,17 @@ function TasksContent() {
     mutationFn: (values: HomeworkForm) =>
       teacherApi.createHomework({
         ...values,
-        dueDate: new Date(values.dueDate).toISOString(),
+        startsAt: new Date(values.startsAt).toISOString(),
+        endsAt: new Date(values.endsAt).toISOString(),
         linkedQuizId: values.linkedQuizId || undefined,
       }),
     onSuccess: () => {
+      const next = defaultHomeworkWindow();
       homeworkForm.reset({
         subject: 'math',
         xpReward: 20,
-        dueDate: defaultHomeworkDueDate(),
+        startsAt: next.startsAt,
+        endsAt: next.endsAt,
         linkedQuizId: '',
         title: '',
         description: '',
@@ -127,6 +163,9 @@ function TasksContent() {
     mutationFn: teacherApi.deleteHomework,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['teacher-dashboard'] });
+      if (analyticsId) {
+        setAnalyticsId(null);
+      }
       showToast('Завдання видалено');
     },
   });
@@ -200,6 +239,7 @@ function TasksContent() {
     }) => teacherApi.reviewSubmission(id, { decision, comment }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['teacher-dashboard'] });
+      void queryClient.invalidateQueries({ queryKey: ['homework-analytics'] });
       showToast('Рішення збережено');
     },
   });
@@ -211,6 +251,20 @@ function TasksContent() {
       return acc;
     }, {});
   }, [templatesQuery.data]);
+
+  const activeHomeworks = useMemo(() => {
+    const data = dashboardQuery.data;
+    if (!data) return [];
+    if (data.activeHomeworks) return data.activeHomeworks;
+    return (data.homeworks ?? []).filter((hw) => !hw.ended);
+  }, [dashboardQuery.data]);
+
+  const endedHomeworks = useMemo(() => {
+    const data = dashboardQuery.data;
+    if (!data) return [];
+    if (data.endedHomeworks) return data.endedHomeworks;
+    return (data.homeworks ?? []).filter((hw) => hw.ended);
+  }, [dashboardQuery.data]);
 
   if (dashboardQuery.isLoading) {
     return <LoadingState />;
@@ -243,9 +297,15 @@ function TasksContent() {
       </div>
 
       {tab === 'homework' ? (
-        <>
-          <Card>
-            <h2>Створити завдання</h2>
+        <div className={styles.stack}>
+          <Card className={styles.block}>
+            <div className={styles.blockHead}>
+              <h2>Створити завдання</h2>
+              <p className={styles.hint}>
+                Після дати закінчення завдання зникне зі списку активних, але
+                залишиться для перевірки та аналітики.
+              </p>
+            </div>
             <form
               className={styles.form}
               onSubmit={homeworkForm.handleSubmit((values) =>
@@ -269,7 +329,25 @@ function TasksContent() {
                 <option value="art">Мистецтво</option>
                 <option value="other">Інше</option>
               </select>
-              <input type="date" {...homeworkForm.register('dueDate')} />
+              <div className={styles.dateRow}>
+                <label className={styles.label}>
+                  Від (початок)
+                  <input
+                    type="datetime-local"
+                    {...homeworkForm.register('startsAt')}
+                  />
+                </label>
+                <label className={styles.label}>
+                  До (закінчення)
+                  <input
+                    type="datetime-local"
+                    {...homeworkForm.register('endsAt')}
+                  />
+                </label>
+              </div>
+              {homeworkForm.formState.errors.endsAt ? (
+                <em>{homeworkForm.formState.errors.endsAt.message}</em>
+              ) : null}
               <input type="number" {...homeworkForm.register('xpReward')} />
               <label className={styles.label}>
                 Повʼязати тест (необовʼязково)
@@ -282,47 +360,114 @@ function TasksContent() {
                   ))}
                 </select>
               </label>
-              <Button type="submit" fullWidth disabled={createHomework.isPending}>
+              <Button
+                type="submit"
+                fullWidth
+                disabled={createHomework.isPending}
+                className={styles.submit}
+              >
                 Додати завдання
               </Button>
             </form>
           </Card>
 
-          <section className={styles.list}>
-            <h2>Завдання класу</h2>
-            {(dashboardQuery.data?.homeworks.length ?? 0) === 0 ? (
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2>Активні завдання</h2>
+            </div>
+            {activeHomeworks.length === 0 ? (
               <EmptyState
                 title="Поки порожньо"
                 description="Створи перше завдання для класу."
               />
             ) : (
-              dashboardQuery.data?.homeworks.map((homework) => (
-                <div key={homework.id} className={styles.itemRow}>
-                  <HomeworkCard homework={homework} />
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
+              <div className={styles.cards}>
+                {activeHomeworks.map((homework) => (
+                  <HomeworkRow
+                    key={homework.id}
+                    homework={homework}
+                    compact
+                    analyticsOpen={analyticsId === homework.id}
+                    onToggleAnalytics={() =>
+                      setAnalyticsId((prev) =>
+                        prev === homework.id ? null : homework.id,
+                      )
+                    }
+                    onDelete={() => {
                       if (confirm('Видалити це завдання?')) {
                         deleteHomework.mutate(homework.id);
                       }
                     }}
-                  >
-                    Видалити
-                  </Button>
-                </div>
-              ))
+                    analytics={
+                      analyticsId === homework.id
+                        ? analyticsQuery.data
+                        : undefined
+                    }
+                    analyticsLoading={
+                      analyticsId === homework.id && analyticsQuery.isLoading
+                    }
+                  />
+                ))}
+              </div>
             )}
           </section>
-        </>
+
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2>Для перевірки (завершені)</h2>
+              <p className={styles.hint}>
+                Ці завдання вже не показуються учням як активні, але ти можеш
+                перевірити роботи й аналітику.
+              </p>
+            </div>
+            {endedHomeworks.length === 0 ? (
+              <EmptyState
+                title="Завершених ще немає"
+                description="Коли мине дата закінчення, завдання зʼявиться тут."
+              />
+            ) : (
+              <div className={styles.cards}>
+                {endedHomeworks.map((homework) => (
+                  <HomeworkRow
+                    key={homework.id}
+                    homework={homework}
+                    compact
+                    analyticsOpen={analyticsId === homework.id}
+                    onToggleAnalytics={() =>
+                      setAnalyticsId((prev) =>
+                        prev === homework.id ? null : homework.id,
+                      )
+                    }
+                    onDelete={() => {
+                      if (confirm('Видалити це завдання?')) {
+                        deleteHomework.mutate(homework.id);
+                      }
+                    }}
+                    analytics={
+                      analyticsId === homework.id
+                        ? analyticsQuery.data
+                        : undefined
+                    }
+                    analyticsLoading={
+                      analyticsId === homework.id && analyticsQuery.isLoading
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       ) : null}
 
       {tab === 'tests' ? (
-        <>
-          <Card>
-            <h2>База готових тестів</h2>
-            <p className={styles.hint}>
-              Обери тест із бази (наприклад математика) і одразу додай класу.
-            </p>
+        <div className={styles.stack}>
+          <Card className={styles.block}>
+            <div className={styles.blockHead}>
+              <h2>База готових тестів</h2>
+              <p className={styles.hint}>
+                Обери тест із бази (наприклад математика) і одразу додай класу.
+              </p>
+            </div>
             <div className={styles.bank}>
               {Object.entries(templatesBySubject).map(([subject, items]) => (
                 <div key={subject} className={styles.bankGroup}>
@@ -350,8 +495,10 @@ function TasksContent() {
             </div>
           </Card>
 
-          <Card>
-            <h2>Створити свій тест</h2>
+          <Card className={styles.block}>
+            <div className={styles.blockHead}>
+              <h2>Створити свій тест</h2>
+            </div>
             <form
               className={styles.form}
               onSubmit={quizForm.handleSubmit((values) =>
@@ -394,8 +541,10 @@ function TasksContent() {
             </form>
           </Card>
 
-          <section className={styles.list}>
-            <h2>Тести класу</h2>
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2>Тести класу</h2>
+            </div>
             {(quizzesQuery.data?.length ?? 0) === 0 ? (
               <EmptyState
                 title="Тестів ще немає"
@@ -428,12 +577,14 @@ function TasksContent() {
               ))
             )}
           </section>
-        </>
+        </div>
       ) : null}
 
       {tab === 'review' ? (
-        <section className={styles.list}>
-          <h2>Роботи учнів</h2>
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2>Роботи учнів</h2>
+          </div>
           {(dashboardQuery.data?.checkingWorks.length ?? 0) === 0 ? (
             <EmptyState
               title="Все перевірено"
@@ -454,6 +605,125 @@ function TasksContent() {
         </section>
       ) : null}
     </div>
+  );
+}
+
+function HomeworkRow({
+  homework,
+  compact = false,
+  analyticsOpen,
+  onToggleAnalytics,
+  onDelete,
+  analytics,
+  analyticsLoading,
+}: {
+  homework: Homework;
+  compact?: boolean;
+  analyticsOpen: boolean;
+  onToggleAnalytics: () => void;
+  onDelete: () => void;
+  analytics?: HomeworkAnalytics;
+  analyticsLoading: boolean;
+}) {
+  return (
+    <div className={styles.itemRow}>
+      <HomeworkCard
+        homework={homework}
+        compact={compact}
+        analyticsOpen={analyticsOpen}
+        onAnalytics={onToggleAnalytics}
+        onDelete={onDelete}
+      />
+      {analyticsOpen ? (
+        <HomeworkAnalyticsPanel
+          loading={analyticsLoading}
+          data={analytics}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function HomeworkAnalyticsPanel({
+  loading,
+  data,
+}: {
+  loading: boolean;
+  data?: HomeworkAnalytics;
+}) {
+  if (loading) {
+    return (
+      <Card className={styles.analyticsCard}>
+        <LoadingState />
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card className={styles.analyticsCard}>
+        <EmptyState
+          title="Немає даних"
+          description="Аналітику для цього завдання зараз не вдалося завантажити."
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <Card className={styles.analyticsCard}>
+      <h3>Аналітика: {data.homework.title}</h3>
+      <div className={styles.analyticsStats}>
+        <span>
+          Брали участь: {data.participatedCount} з {data.studentsTotal}
+        </span>
+        <span>На перевірці: {data.checkingCount}</span>
+        {data.quizSummary ? (
+          <span>
+            Тест «{data.quizSummary.quizTitle}»: середній результат{' '}
+            {data.quizSummary.averagePercent ?? '—'}%
+          </span>
+        ) : null}
+      </div>
+
+      {data.quizSummary && data.quizSummary.topScorers.length > 0 ? (
+        <div className={styles.topBlock}>
+          <h4>Краще впоралися з тестом</h4>
+          <ul className={styles.topList}>
+            {data.quizSummary.topScorers.map((item, index) => (
+              <li key={item.studentId}>
+                <strong>
+                  {index + 1}. {item.displayName}
+                </strong>
+                <span>
+                  {item.quizScore}/{item.quizTotal} ({item.quizPercent}%)
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className={styles.participants}>
+        <h4>Участь класу</h4>
+        <ul className={styles.participantList}>
+          {data.participants.map((item) => (
+            <li key={item.studentId}>
+              <span className={styles.participantName}>
+                <span aria-hidden="true">{item.avatarEmoji}</span>
+                {item.displayName}
+              </span>
+              <span className={styles.participantMeta}>
+                {submissionStatusLabel[item.status] ?? item.status}
+                {item.quizPercent !== null
+                  ? ` · тест ${item.quizPercent}%`
+                  : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Card>
   );
 }
 
@@ -498,10 +768,7 @@ function ReviewCard({
         />
       </label>
       <div className={styles.reviewActions}>
-        <Button
-          disabled={busy}
-          onClick={() => onReview('accept', comment)}
-        >
+        <Button disabled={busy} onClick={() => onReview('accept', comment)}>
           Прийняти
         </Button>
         <Button

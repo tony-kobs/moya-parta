@@ -18,14 +18,44 @@ export const getDashboard = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, dashboard);
 };
 
-const homeworkSchema = z.object({
-  subject: z.enum(['math', 'ukrainian', 'reading', 'science', 'art', 'other']),
-  title: z.string().min(1, 'Напиши назву завдання'),
-  description: z.string().min(1, 'Додай короткий опис'),
-  dueDate: z.string().min(1),
-  xpReward: z.number().min(5).max(100),
-  linkedQuizId: z.string().optional(),
-});
+const homeworkSchema = z
+  .object({
+    subject: z.enum(['math', 'ukrainian', 'reading', 'science', 'art', 'other']),
+    title: z.string().min(1, 'Напиши назву завдання'),
+    description: z.string().min(1, 'Додай короткий опис'),
+    startsAt: z.string().min(1).optional(),
+    endsAt: z.string().min(1).optional(),
+    dueDate: z.string().min(1).optional(),
+    xpReward: z.number().min(5).max(100),
+    linkedQuizId: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const startsAt = value.startsAt;
+    const endsAt = value.endsAt ?? value.dueDate;
+    if (!endsAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Вкажи дату закінчення',
+        path: ['endsAt'],
+      });
+      return;
+    }
+    if (!startsAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Вкажи дату початку',
+        path: ['startsAt'],
+      });
+      return;
+    }
+    if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Дата «до» має бути пізніше за «від»',
+        path: ['endsAt'],
+      });
+    }
+  });
 
 export const createHomework = (req: AuthRequest, res: Response): void => {
   if (!req.user) {
@@ -41,11 +71,44 @@ export const createHomework = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const homework = learningService.createHomework(req.user, parsed.data);
+    const startsAt = parsed.data.startsAt!;
+    const endsAt = parsed.data.endsAt ?? parsed.data.dueDate!;
+    const homework = learningService.createHomework(req.user, {
+      subject: parsed.data.subject,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      startsAt,
+      endsAt,
+      xpReward: parsed.data.xpReward,
+      linkedQuizId: parsed.data.linkedQuizId,
+    });
     sendSuccess(res, homework, HTTP_STATUS.CREATED);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_RANGE') {
+      sendError(res, 'Дата «до» має бути пізніше за «від»');
+      return;
+    }
     sendError(res, 'Не вдалося створити завдання');
   }
+};
+
+export const getHomeworkAnalytics = (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
+    return;
+  }
+
+  const analytics = learningService.getHomeworkAnalytics(
+    getParam(req.params.id),
+    req.user,
+  );
+
+  if (!analytics) {
+    sendError(res, 'Завдання не знайдено', HTTP_STATUS.NOT_FOUND);
+    return;
+  }
+
+  sendSuccess(res, analytics);
 };
 
 export const deleteHomework = (req: AuthRequest, res: Response): void => {

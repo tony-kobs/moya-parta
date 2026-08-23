@@ -35,37 +35,41 @@ function TeacherClassContent() {
 
   return (
     <div className={styles.page}>
-      <Card>
-        <h1>{data.class.name}</h1>
-        <div className={styles.students}>
-          {data.students.map((student) => (
-            <div key={student.id} className={styles.student}>
-              <Avatar
-                emoji={student.avatarEmoji}
-                color={student.avatarColor}
-                size="sm"
-              />
-              <span>{student.displayName}</span>
-            </div>
-          ))}
+      <Card className={styles.overview}>
+        <div>
+          <h1>{data.class.name}</h1>
+          <div className={styles.students}>
+            {data.students.map((student) => (
+              <div key={student.id} className={styles.student}>
+                <Avatar
+                  emoji={student.avatarEmoji}
+                  color={student.avatarColor}
+                  size="sm"
+                />
+                <span>{student.displayName}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </Card>
 
-      <Card>
-        <h2>Спільний прогрес</h2>
-        <ProgressBar
-          value={data.goal.current}
-          max={data.goal.target}
-          label={data.goal.title}
-          tone="secondary"
-        />
+        <div className={styles.goalBlock}>
+          <h2>Спільний прогрес</h2>
+          <ProgressBar
+            value={data.goal.current}
+            max={data.goal.target}
+            label={data.goal.title}
+            tone="secondary"
+          />
+        </div>
       </Card>
 
       <section className={styles.board}>
         <h2>Дошка класу</h2>
-        {data.board.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
+        <div className={styles.boardList}>
+          {data.board.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </div>
       </section>
     </div>
   );

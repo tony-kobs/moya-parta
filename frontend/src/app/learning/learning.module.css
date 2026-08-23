@@ -1,58 +1,225 @@
-.page {
-  display: grid;
-  gap: var(--space-6);
+﻿.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.page h2 {
-  margin: 0 0 var(--space-3);
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 22px 20px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(95, 159, 116, 0.18), rgba(255, 255, 255, 0.92) 55%),
+    var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(95, 159, 116, 0.16);
+  margin-bottom: 40px;
 }
 
-.grid {
+.heroCopy {
+  min-width: 0;
   display: grid;
-  gap: var(--space-4);
+  gap: 8px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--sec-learning);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.55rem, 4vw, 2rem);
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  margin: 0;
+  max-width: 38ch;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.heroArt {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+}
+
+.heroIcon {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.focusStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 0;
+  margin-bottom: 28px;
 }
 
 .stack {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.quizHead {
   display: flex;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 0;
+}
+
+.focusChip {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: var(--space-4);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(38, 50, 56, 0.12);
+  background: #fbfcfe;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--color-text);
 }
 
-.quizHead h3 {
+.focusChip em {
+  font-style: normal;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.focusChipActive {
+  background: var(--sec-learning);
+  border-color: var(--sec-learning);
+  color: #fff;
+}
+
+.focusChipActive em {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 12px;
+}
+
+.cards {
+  display: grid;
+  gap: 12px;
+}
+
+.emptyLine {
   margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
-.quizHead p {
+.quizList,
+.missedList {
+  display: grid;
+  gap: 10px;
+}
+
+.quizRow,
+.missedItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.quizCopy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.quizEmoji {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.quizCopy strong,
+.missedItem h3 {
+  margin: 0;
+  display: block;
+}
+
+.quizCopy p,
+.missedItem p {
   margin: 4px 0 0;
   color: var(--color-text-muted);
-}
-
-.missedList {
-  margin: var(--space-3) 0;
-  padding-left: 1.2rem;
-  color: var(--color-text-muted);
+  font-size: 0.9rem;
 }
 
 .placeholder {
-  margin: 0;
-  color: #3552b8;
+  margin: 8px 0 0 !important;
+  color: var(--color-primary-strong) !important;
   font-weight: 700;
 }
 
-@media (min-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.sideNote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--sec-learning-grad);
+  border: 1px solid rgba(95, 159, 116, 0.16);
 }
 
-@media (min-width: 1440px) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
+.sideNote strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sideNote p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.sideLink {
+  font-weight: 800;
+  color: var(--sec-learning);
+  text-decoration: none;
+}
+
+.sideLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .heroArt {
+    display: none;
   }
 }

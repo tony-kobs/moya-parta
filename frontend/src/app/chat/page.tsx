@@ -1,323 +1,46 @@
 'use client';
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/navigation/AppShell';
-import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { chatApi, type ChatContact, type ChatMessageView } from '@/services/api';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 import { useAuthStore } from '@/store/authStore';
-import { formatRelativeTime } from '@/lib/format';
-import styles from './chat.module.css';
+import { useUiStore } from '@/store/uiStore';
+import { getRoleHomePath } from '@/lib/format';
 
-type Tab = 'class' | 'direct';
+const DESKTOP_MQ = '(min-width: 1028px)';
 
 export default function ChatPage() {
   return (
     <AppShell title="Чат" allowedRoles={['student', 'teacher']}>
-      <ChatContent />
+      <ChatPageContent />
     </AppShell>
   );
 }
 
-function ChatContent() {
+function ChatPageContent() {
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const [tab, setTab] = useState<Tab>('class');
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [draft, setDraft] = useState('');
-  const listRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
-
-  const classQuery = useQuery({
-    queryKey: ['chat-class'],
-    queryFn: chatApi.getClassChat,
-    refetchInterval: 4000,
-  });
-
-  const contactsQuery = useQuery({
-    queryKey: ['chat-contacts'],
-    queryFn: chatApi.getContacts,
-    refetchInterval: 5000,
-  });
-
-  const directQuery = useQuery({
-    queryKey: ['chat-direct', selectedContactId],
-    queryFn: () => chatApi.getDirect(selectedContactId!),
-    enabled: Boolean(selectedContactId),
-    refetchInterval: 3000,
-  });
-
-  const selectedContact = contactsQuery.data?.find(
-    (item) => item.id === selectedContactId,
-  );
-
-  const sendClass = useMutation({
-    mutationFn: (text: string) => chatApi.sendClassMessage(text),
-    onSuccess: () => {
-      setDraft('');
-      void queryClient.invalidateQueries({ queryKey: ['chat-class'] });
-    },
-  });
-
-  const sendDirect = useMutation({
-    mutationFn: (text: string) =>
-      chatApi.sendDirect(selectedContactId!, text),
-    onSuccess: () => {
-      setDraft('');
-      void queryClient.invalidateQueries({
-        queryKey: ['chat-direct', selectedContactId],
-      });
-      void queryClient.invalidateQueries({ queryKey: ['chat-contacts'] });
-    },
-  });
-
-  const messages: ChatMessageView[] =
-    tab === 'class' ? (classQuery.data ?? []) : (directQuery.data ?? []);
+  const setChatDockOpen = useUiStore((state) => state.setChatDockOpen);
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [messages.length, tab, selectedContactId]);
+    const media = window.matchMedia(DESKTOP_MQ);
 
-  if (classQuery.isLoading || contactsQuery.isLoading) {
-    return <LoadingState label="Відкриваємо чат..." />;
-  }
+    const sync = () => {
+      if (media.matches && user) {
+        setChatDockOpen(true);
+        router.replace(getRoleHomePath(user.role));
+      }
+    };
 
-  const onSend = () => {
-    const text = draft.trim();
-    if (!text) {
-      return;
-    }
-
-    if (tab === 'class') {
-      sendClass.mutate(text);
-      return;
-    }
-
-    if (selectedContactId) {
-      sendDirect.mutate(text);
-    }
-  };
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, [router, setChatDockOpen, user]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.tabs}>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'class' ? styles.tabActive : ''}`}
-          onClick={() => setTab('class')}
-        >
-          Чат класу
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'direct' ? styles.tabActive : ''}`}
-          onClick={() => setTab('direct')}
-        >
-          Особисті
-        </button>
-      </div>
-
-      {tab === 'direct' ? (
-        <div className={styles.layout}>
-          <aside className={styles.contacts}>
-            <h2>Кому написати</h2>
-            {(contactsQuery.data ?? []).length === 0 ? (
-              <EmptyState
-                title="Поки нікого немає"
-                description="Коли в класі зʼявляться друзі — тут можна буде писати."
-              />
-            ) : (
-              contactsQuery.data?.map((contact) => (
-                <ContactButton
-                  key={contact.id}
-                  contact={contact}
-                  active={contact.id === selectedContactId}
-                  onClick={() => setSelectedContactId(contact.id)}
-                />
-              ))
-            )}
-          </aside>
-
-          <section className={styles.thread}>
-            {!selectedContact ? (
-              <EmptyState
-                title="Обери однокласника або вчителя"
-                description="Можна написати особисто — тільки вам двом."
-              />
-            ) : (
-              <>
-                <header className={styles.threadHead}>
-                  <Avatar
-                    emoji={selectedContact.avatarEmoji}
-                    color={selectedContact.avatarColor}
-                    size="sm"
-                  />
-                  <div>
-                    <strong>{selectedContact.displayName}</strong>
-                    <span>
-                      {selectedContact.role === 'teacher'
-                        ? 'Учитель'
-                        : 'Однокласник'}
-                    </span>
-                  </div>
-                </header>
-                <MessageList
-                  messages={messages}
-                  currentUserId={user?.id}
-                  listRef={listRef}
-                />
-                <Composer
-                  draft={draft}
-                  setDraft={setDraft}
-                  onSend={onSend}
-                  pending={sendDirect.isPending}
-                  placeholder={`Написати ${selectedContact.displayName}...`}
-                />
-              </>
-            )}
-          </section>
-        </div>
-      ) : (
-        <section className={styles.threadSolo}>
-          <MessageList
-            messages={messages}
-            currentUserId={user?.id}
-            listRef={listRef}
-            emptyTitle="Чат класу ще тихий"
-            emptyDescription="Напиши першим — усі в класі побачать."
-          />
-          <Composer
-            draft={draft}
-            setDraft={setDraft}
-            onSend={onSend}
-            pending={sendClass.isPending}
-            placeholder="Повідомлення для всього класу..."
-          />
-        </section>
-      )}
-    </div>
-  );
-}
-
-function ContactButton({
-  contact,
-  active,
-  onClick,
-}: {
-  contact: ChatContact;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={`${styles.contact} ${active ? styles.contactActive : ''}`}
-      onClick={onClick}
-    >
-      <Avatar
-        emoji={contact.avatarEmoji}
-        color={contact.avatarColor}
-        size="sm"
-      />
-      <div className={styles.contactText}>
-        <strong>{contact.displayName}</strong>
-        <span>
-          {contact.lastMessage?.text ??
-            (contact.role === 'teacher' ? 'Учитель' : 'Однокласник')}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function MessageList({
-  messages,
-  currentUserId,
-  listRef,
-  emptyTitle = 'Поки немає повідомлень',
-  emptyDescription = 'Напиши першим.',
-}: {
-  messages: ChatMessageView[];
-  currentUserId?: string;
-  listRef: RefObject<HTMLDivElement | null>;
-  emptyTitle?: string;
-  emptyDescription?: string;
-}) {
-  if (messages.length === 0) {
-    return (
-      <div className={styles.messages}>
-        <EmptyState title={emptyTitle} description={emptyDescription} />
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.messages} ref={listRef}>
-      {messages.map((message) => {
-        const mine = message.senderId === currentUserId;
-        return (
-          <div
-            key={message.id}
-            className={`${styles.bubbleWrap} ${mine ? styles.mine : ''}`}
-          >
-            {!mine ? (
-              <Avatar
-                emoji={message.sender?.avatarEmoji ?? '🙂'}
-                color={message.sender?.avatarColor ?? '#B8DDF5'}
-                size="sm"
-              />
-            ) : null}
-            <div className={`${styles.bubble} ${mine ? styles.bubbleMine : ''}`}>
-              {!mine ? (
-                <div className={styles.sender}>{message.sender?.displayName}</div>
-              ) : null}
-              <p>{message.text}</p>
-              <time>{formatRelativeTime(message.createdAt)}</time>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Composer({
-  draft,
-  setDraft,
-  onSend,
-  pending,
-  placeholder,
-}: {
-  draft: string;
-  setDraft: (value: string) => void;
-  onSend: () => void;
-  pending: boolean;
-  placeholder: string;
-}) {
-  return (
-    <div className={styles.composer}>
-      <input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        placeholder={placeholder}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            onSend();
-          }
-        }}
-      />
-      <Button
-        size="md"
-        onClick={onSend}
-        disabled={!draft.trim() || pending}
-      >
-        Надіслати
-      </Button>
+    <div className="chat-page-mobile">
+      <ChatPanel />
     </div>
   );
 }

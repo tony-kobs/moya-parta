@@ -1,0 +1,65 @@
+.card {
+  display: grid;
+  gap: 16px;
+}
+
+.head {
+  display: grid;
+  gap: 8px;
+}
+
+.head h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(38, 50, 56, 0.12);
+  padding: 14px 16px;
+  background: #fbfcfe;
+  font: inherit;
+  resize: vertical;
+}
+
+.form em {
+  color: #9a4545;
+  font-style: normal;
+  font-weight: 600;
+  margin: -4px 0 0;
+}
+
+.emojiRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emoji {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  background: #f3f5fb;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.emojiActive {
+  background: var(--color-primary-soft);
+  box-shadow: var(--shadow-focus);
+}

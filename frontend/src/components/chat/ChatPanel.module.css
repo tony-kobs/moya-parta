@@ -2,6 +2,14 @@
   display: grid;
   gap: var(--space-4);
   min-height: calc(100vh - 140px);
+  min-height: 0;
+}
+
+.compact {
+  min-height: 0;
+  height: 100%;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .tabs {
@@ -14,6 +22,12 @@
   box-shadow: var(--shadow-soft);
 }
 
+.compact .tabs {
+  box-shadow: none;
+  background: var(--color-primary-soft);
+  padding: 4px;
+}
+
 .tab {
   border: none;
   background: transparent;
@@ -24,15 +38,32 @@
   cursor: pointer;
 }
 
+.compact .tab {
+  min-height: 38px;
+  font-size: 0.9rem;
+}
+
 .tabActive {
   background: var(--color-primary-soft);
-  color: #3552b8;
+  color: var(--color-primary-strong);
+}
+
+.compact .tabActive {
+  background: var(--color-surface);
 }
 
 .layout {
   display: grid;
   gap: var(--space-4);
   min-height: 520px;
+  min-height: 0;
+}
+
+.compact .layout {
+  min-height: 0;
+  height: 100%;
+  gap: 10px;
+  grid-template-rows: minmax(0, 38%) minmax(0, 62%);
 }
 
 .contacts,
@@ -44,11 +75,26 @@
   display: flex;
   flex-direction: column;
   min-height: 420px;
+  min-height: 0;
+}
+
+.compact .contacts,
+.compact .thread,
+.compact .threadSolo {
+  min-height: 0;
+  box-shadow: none;
+  border: 1px solid rgba(30, 43, 42, 0.08);
+  border-radius: 16px;
 }
 
 .contacts {
   padding: var(--space-4);
   gap: var(--space-2);
+  overflow: auto;
+}
+
+.compact .contacts {
+  padding: 10px;
 }
 
 .contacts h2 {
@@ -61,7 +107,7 @@
   gap: var(--space-3);
   align-items: center;
   border: none;
-  background: #f7f8fc;
+  background: var(--color-primary-soft);
   border-radius: 16px;
   padding: 10px 12px;
   text-align: left;
@@ -69,7 +115,7 @@
 }
 
 .contactActive {
-  background: var(--color-primary-soft);
+  outline: 2px solid rgba(31, 122, 118, 0.35);
 }
 
 .contactText {
@@ -96,6 +142,11 @@
   align-items: center;
   padding: var(--space-4);
   border-bottom: 1px solid rgba(38, 50, 56, 0.06);
+  flex-shrink: 0;
+}
+
+.compact .threadHead {
+  padding: 10px 12px;
 }
 
 .threadHead span {
@@ -111,6 +162,11 @@
   display: grid;
   gap: var(--space-3);
   align-content: start;
+  min-height: 0;
+}
+
+.compact .messages {
+  padding: 10px 12px;
 }
 
 .bubbleWrap {
@@ -158,6 +214,12 @@
   gap: var(--space-2);
   padding: var(--space-4);
   border-top: 1px solid rgba(38, 50, 56, 0.06);
+  flex-shrink: 0;
+}
+
+.compact .composer {
+  padding: 10px 12px;
+  gap: 8px;
 }
 
 .composer input {
@@ -166,14 +228,25 @@
   border: 1.5px solid rgba(38, 50, 56, 0.12);
   padding: 0 14px;
   background: #fbfcfe;
+  min-width: 0;
+}
+
+.compact .composer input {
+  min-height: 44px;
+  font-size: 0.92rem;
 }
 
 .threadSolo {
   min-height: 560px;
 }
 
+.compact .threadSolo {
+  min-height: 0;
+  height: 100%;
+}
+
 @media (min-width: 1028px) {
-  .layout {
+  .page:not(.compact) .layout {
     grid-template-columns: 280px 1fr;
   }
 }

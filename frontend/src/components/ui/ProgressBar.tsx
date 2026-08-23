@@ -5,6 +5,7 @@ interface ProgressBarProps {
   max: number;
   label?: string;
   tone?: 'primary' | 'secondary' | 'warm';
+  onDark?: boolean;
 }
 
 export function ProgressBar({
@@ -12,6 +13,7 @@ export function ProgressBar({
   max,
   label,
   tone = 'primary',
+  onDark = false,
 }: ProgressBarProps) {
   const percent = Math.min(100, Math.round((value / Math.max(max, 1)) * 100));
 
@@ -19,7 +21,7 @@ export function ProgressBar({
     <div className={styles.wrap}>
       {label ? <div className={styles.label}>{label}</div> : null}
       <div
-        className={styles.track}
+        className={`${styles.track} ${onDark ? styles.trackOnDark : ''}`}
         role="progressbar"
         aria-valuenow={value}
         aria-valuemin={0}

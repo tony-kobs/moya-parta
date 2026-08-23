@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Backpack,
-  Bell,
   BookOpen,
   LogOut,
   School,
@@ -14,32 +13,32 @@ import {
   ClipboardList,
   Shield,
   Link2,
-  MessageCircle,
   CalendarDays,
+  Map,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { BrandMark } from '@/components/brand/BrandMark';
 import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { NavCount } from './NavCount';
 import { badgeForHref, useNavBadges } from '@/hooks/useNavBadges';
 
 const studentLinks = [
-  { href: '/desk', label: 'Моя парта', icon: Armchair },
-  { href: '/class', label: 'Мій клас', icon: School },
-  { href: '/chat', label: 'Чат', icon: MessageCircle },
-  { href: '/learning', label: 'Навчання', icon: BookOpen },
-  { href: '/wins', label: 'Мої перемоги', icon: Trophy },
-  { href: '/backpack', label: 'Мій рюкзак', icon: Backpack },
+  { href: '/desk', label: 'Моя парта', icon: Armchair, tone: 'today' },
+  { href: '/class', label: 'Мій клас', icon: School, tone: 'class' },
+  { href: '/quests', label: 'Квести', icon: Map, tone: 'learning' },
+  { href: '/events', label: 'Події', icon: CalendarDays, tone: 'events' },
+  { href: '/learning', label: 'Навчання', icon: BookOpen, tone: 'learning' },
+  { href: '/wins', label: 'Мої перемоги', icon: Trophy, tone: 'wins' },
+  { href: '/backpack', label: 'Мій рюкзак', icon: Backpack, tone: 'tasks' },
 ];
 
 const teacherLinks = [
-  { href: '/teacher', label: 'Сьогодні', icon: LayoutDashboard },
-  { href: '/teacher/class', label: 'Мій клас', icon: School },
-  { href: '/chat', label: 'Чат', icon: MessageCircle },
-  { href: '/teacher/invite', label: 'Запросити', icon: Link2 },
-  { href: '/teacher/tasks', label: 'Завдання', icon: ClipboardList },
-  { href: '/teacher/events', label: 'Події', icon: CalendarDays },
-  { href: '/teacher/moderation', label: 'Дошка', icon: Shield },
+  { href: '/teacher', label: 'Сьогодні', icon: LayoutDashboard, tone: 'today' },
+  { href: '/teacher/class', label: 'Мій клас', icon: School, tone: 'class' },
+  { href: '/teacher/tasks', label: 'Завдання', icon: ClipboardList, tone: 'tasks' },
+  { href: '/teacher/events', label: 'Події', icon: CalendarDays, tone: 'events' },
+  { href: '/teacher/moderation', label: 'Дошка', icon: Shield, tone: 'board' },
 ];
 
 function isNavActive(pathname: string, href: string): boolean {
@@ -56,6 +55,7 @@ function isNavActive(pathname: string, href: string): boolean {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { badges } = useNavBadges();
@@ -65,31 +65,34 @@ export function Sidebar() {
   }
 
   const links = user.role === 'teacher' ? teacherLinks : studentLinks;
-  const notificationsCount = badges.notifications;
+  const inviteActive = pathname.startsWith('/teacher/invite');
+
+  const handleLogout = () => {
+    logout();
+    router.replace('/');
+  };
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <span className={styles.logo} aria-hidden="true">
-          🪑
-        </span>
-        <div>
-          <strong>Цифровий клас</strong>
-          <p>Твоє місце поруч</p>
-        </div>
+        <BrandMark
+          href={user.role === 'teacher' ? '/teacher' : '/desk'}
+          size="md"
+          tagline
+        />
       </div>
 
       <nav className={styles.nav} aria-label="Основна навігація">
         {links.map((link) => {
           const Icon = link.icon;
-          const active = isNavActive(pathname, link.href);
           const count = badgeForHref(link.href, badges, user.role);
+          const active = isNavActive(pathname, link.href);
 
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`${styles.link} ${active ? styles.active : ''}`}
+              className={`${styles.link} ${styles[`tone_${link.tone}`]} ${active ? styles.active : ''}`}
             >
               <span className={styles.iconWrap}>
                 <Icon size={20} aria-hidden="true" />
@@ -102,16 +105,17 @@ export function Sidebar() {
       </nav>
 
       <div className={styles.footer}>
-        <Link
-          href="/notifications"
-          className={`${styles.link} ${pathname.startsWith('/notifications') ? styles.active : ''}`}
-        >
-          <span className={styles.iconWrap}>
-            <Bell size={20} aria-hidden="true" />
-            <NavCount count={notificationsCount} label="Сповіщення" />
-          </span>
-          <span>Сповіщення</span>
-        </Link>
+        {user.role === 'teacher' ? (
+          <Link
+            href="/teacher/invite"
+            className={`${styles.link} ${styles.tone_invite} ${inviteActive ? styles.active : ''}`}
+          >
+            <span className={styles.iconWrap}>
+              <Link2 size={20} aria-hidden="true" />
+            </span>
+            <span>Запросити</span>
+          </Link>
+        ) : null}
         <Link href="/profile" className={styles.profile}>
           <Avatar
             emoji={user.avatarEmoji}
@@ -121,7 +125,7 @@ export function Sidebar() {
           />
           <span>{user.displayName}</span>
         </Link>
-        <button type="button" className={styles.logout} onClick={logout}>
+        <button type="button" className={styles.logout} onClick={handleLogout}>
           <LogOut size={18} aria-hidden="true" />
           Вийти
         </button>

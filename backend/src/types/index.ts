@@ -76,7 +76,10 @@ export interface Homework {
   subject: Subject;
   title: string;
   description: string;
+  /** @deprecated prefer endsAt — kept for older clients/seed */
   dueDate: string;
+  startsAt: string;
+  endsAt: string;
   xpReward: number;
   createdBy: string;
   linkedQuizId?: string;

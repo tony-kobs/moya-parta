@@ -65,11 +65,53 @@ export interface Homework {
   title: string;
   description: string;
   dueDate: string;
+  startsAt?: string;
+  endsAt?: string;
   xpReward: number;
   status?: HomeworkStatus;
   bucket?: 'today' | 'waiting' | 'later' | 'done';
   linkedQuizId?: string;
   teacherComment?: string;
+  active?: boolean;
+  ended?: boolean;
+}
+
+export interface HomeworkAnalytics {
+  homework: Homework & {
+    isQuizLinked?: boolean;
+  };
+  studentsTotal: number;
+  participatedCount: number;
+  checkingCount: number;
+  participants: Array<{
+    studentId: string;
+    displayName: string;
+    avatarEmoji: string;
+    avatarColor: string;
+    status: string;
+    submittedAt?: string;
+    answerPreview?: string;
+    quizScore: number | null;
+    quizTotal: number | null;
+    quizPercent: number | null;
+    participated: boolean;
+    rank: number | null;
+  }>;
+  quizSummary: {
+    quizId: string;
+    quizTitle: string;
+    questionsCount: number;
+    completedCount: number;
+    averagePercent: number | null;
+    topScorers: Array<{
+      studentId: string;
+      displayName: string;
+      quizPercent: number | null;
+      quizScore: number | null;
+      quizTotal: number | null;
+      rank?: number;
+    }>;
+  } | null;
 }
 
 export interface QuizQuestion {

@@ -48,6 +48,15 @@ export const submitHomework = (req: AuthRequest, res: Response): void => {
     return;
   }
 
+  if ('error' in result && result.error === 'CLOSED') {
+    sendError(
+      res,
+      'Термін завдання закінчився. Нові відповіді більше не приймаються.',
+      HTTP_STATUS.BAD_REQUEST,
+    );
+    return;
+  }
+
   sendSuccess(res, result);
 };
 

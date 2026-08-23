@@ -1,4 +1,4 @@
-.host {
+﻿.host {
   position: fixed;
   left: 50%;
   bottom: calc(var(--bottom-nav-height) + 16px);
@@ -23,7 +23,7 @@
 
 .info {
   background: var(--color-primary-soft);
-  color: #3552b8;
+  color: var(--color-primary-strong);
 }
 
 .error {

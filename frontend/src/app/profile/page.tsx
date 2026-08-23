@@ -43,7 +43,7 @@ function ProfileContent() {
         fullWidth
         onClick={() => {
           logout();
-          router.replace('/login');
+          router.replace('/');
         }}
       >
         Вийти

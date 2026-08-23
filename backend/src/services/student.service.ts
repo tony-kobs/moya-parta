@@ -6,6 +6,7 @@ import {
   eventEndsAt,
   eventStartsAt,
 } from '../helpers/events';
+import { isHomeworkActive } from '../helpers/homework';
 import type { BackpackItem, StudentProfile } from '../types';
 
 export const getStudentDesk = (studentId: string) => {
@@ -19,7 +20,7 @@ export const getStudentDesk = (studentId: string) => {
   }
 
   const todayHomework = db.homeworks
-    .filter((hw) => hw.classId === classRoom.id)
+    .filter((hw) => hw.classId === classRoom.id && isHomeworkActive(hw))
     .map((hw) => {
       const submission = db.homeworkSubmissions.find(
         (sub) => sub.homeworkId === hw.id && sub.studentId === studentId,

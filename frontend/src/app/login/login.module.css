@@ -1,20 +1,22 @@
+﻿/* Shared auth primitives (register / join still use these) */
 .page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: var(--space-4);
+  padding: var(--page-pad-x);
   background:
-    radial-gradient(circle at 20% 20%, rgba(184, 221, 245, 0.4), transparent 30%),
-    radial-gradient(circle at 80% 10%, rgba(233, 166, 184, 0.25), transparent 28%),
+    radial-gradient(circle at 18% 12%, rgba(142, 197, 216, 0.35), transparent 32%),
+    radial-gradient(circle at 88% 8%, rgba(196, 165, 116, 0.22), transparent 28%),
     var(--color-background);
 }
 
 .card {
   width: min(440px, 100%);
   background: var(--color-surface);
-  border-radius: 28px;
+  border-radius: clamp(20px, 4vw, 28px);
   box-shadow: var(--shadow-card);
-  padding: var(--space-8) var(--space-6);
+  padding: clamp(22px, 4vw, 36px) clamp(18px, 3.5vw, 28px);
   display: grid;
   gap: var(--space-4);
 }
@@ -31,12 +33,14 @@
 
 .card h1 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  letter-spacing: -0.03em;
 }
 
 .lead {
   margin: 0;
   color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
 .field {
@@ -48,9 +52,21 @@
 .field input {
   min-height: 52px;
   border-radius: 16px;
-  border: 1.5px solid rgba(38, 50, 56, 0.12);
+  border: 1.5px solid rgba(30, 43, 42, 0.12);
   padding: 0 16px;
   background: #fbfcfe;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: rgba(31, 122, 118, 0.45);
+  box-shadow: var(--shadow-focus);
+}
+
+.field input::placeholder {
+  color: #9aa6a4;
+  font-weight: 600;
 }
 
 .field em {
@@ -84,15 +100,325 @@
 
 .demoBtn {
   border: none;
-  background: #f3f5fb;
-  color: #3552b8;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   font-weight: 700;
   border-radius: var(--radius-pill);
   min-height: 40px;
   padding: 0 14px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .hint {
   margin-top: var(--space-3) !important;
+}
+
+/* ========== Login redesign ========== */
+.loginPage {
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  isolation: isolate;
+  background: var(--color-background);
+}
+
+.loginPage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    url('/brand/login-wash.png') center / cover no-repeat,
+    var(--color-background);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.loginShell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(160px, 34vh) 1fr;
+}
+
+.visual {
+  position: relative;
+  overflow: hidden;
+  min-height: 160px;
+}
+
+.visualImage {
+  object-fit: cover;
+  object-position: center 40%;
+}
+
+.visualShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 42, 40, 0.25) 0%,
+      rgba(18, 42, 40, 0.55) 100%
+    );
+}
+
+.visualCopy {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 10px;
+  color: #fff;
+}
+
+.visualQuote {
+  margin: 0;
+  font-size: clamp(1.05rem, 3.8vw, 1.25rem);
+  font-weight: 700;
+  max-width: 18ch;
+  line-height: 1.3;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+}
+
+.formPane {
+  display: grid;
+  align-content: start;
+  padding: 20px var(--page-pad-x) 28px;
+  background: var(--color-surface);
+  border-radius: 24px 24px 0 0;
+  margin-top: -18px;
+  position: relative;
+  box-shadow: 0 -12px 32px rgba(30, 43, 42, 0.08);
+}
+
+.formInner {
+  width: min(420px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.mobileBrand {
+  display: none;
+}
+
+.formHead h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.55rem, 5vw, 2rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.paths,
+.demoBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.pathsLabel,
+.demoLabel {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.pathRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pathBtn,
+.demoChip {
+  min-height: 44px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 12px;
+  font-size: 0.92rem;
+}
+
+.pathBtn {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.demoChip {
+  background: var(--color-oak-soft);
+  color: #6a5428;
+}
+
+.demoBlock {
+  padding-top: 4px;
+  border-top: 1px solid rgba(30, 43, 42, 0.08);
+}
+
+/* 440 */
+@media (min-width: 440px) {
+  .loginShell {
+    grid-template-rows: minmax(180px, 36vh) 1fr;
+  }
+
+  .formPane {
+    padding-top: 24px;
+    padding-bottom: 32px;
+  }
+
+  .visualCopy {
+    padding: 20px 22px 22px;
+  }
+}
+
+/* 768 — tablet: taller visual, wider form */
+@media (min-width: 768px) {
+  .loginShell {
+    grid-template-rows: minmax(240px, 40vh) 1fr;
+  }
+
+  .formPane {
+    border-radius: 28px 28px 0 0;
+    margin-top: -24px;
+    padding: 32px 40px 40px;
+  }
+
+  .formInner {
+    width: min(440px, 100%);
+    gap: 20px;
+  }
+
+  .pathBtn,
+  .demoChip {
+    min-height: 48px;
+  }
+}
+
+/* 1028 — split composition */
+@media (min-width: 1028px) {
+  .loginPage::before {
+    display: none;
+  }
+
+  .loginShell {
+    grid-template-rows: none;
+    grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    min-height: calc(100vh - 48px);
+    min-height: calc(100dvh - 48px);
+    margin-top: 24px;
+    margin-bottom: 24px;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    background: var(--color-surface);
+  }
+
+  .visual {
+    min-height: 100%;
+  }
+
+  .visualShade {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(18, 42, 40, 0.55) 0%,
+        rgba(18, 42, 40, 0.22) 55%,
+        rgba(18, 42, 40, 0.1) 100%
+      ),
+      linear-gradient(
+        180deg,
+        transparent 40%,
+        rgba(18, 42, 40, 0.45) 100%
+      );
+  }
+
+  .visualCopy {
+    inset: auto 0 0;
+    padding: 36px 40px;
+    gap: 14px;
+  }
+
+  .visualQuote {
+    font-size: clamp(1.4rem, 2vw, 1.85rem);
+    max-width: 14ch;
+  }
+
+  .formPane {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    align-content: center;
+    padding: 40px 48px;
+    background: var(--color-surface);
+  }
+
+  .formInner {
+    width: 100%;
+    max-width: 400px;
+    margin: 0;
+  }
+}
+
+/* 1440 */
+@media (min-width: 1440px) {
+  .loginShell {
+    max-width: 1280px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(460px, 0.85fr);
+    min-height: calc(100dvh - 64px);
+    margin-top: 32px;
+    margin-bottom: 32px;
+    border-radius: 32px;
+  }
+
+  .visualCopy {
+    padding: 44px 48px;
+  }
+
+  .formPane {
+    padding: 48px 56px;
+  }
+
+  .formInner {
+    max-width: 420px;
+  }
+}
+
+/* 1920 */
+@media (min-width: 1920px) {
+  .loginShell {
+    max-width: 1440px;
+    grid-template-columns: minmax(0, 1.2fr) minmax(480px, 0.8fr);
+  }
+
+  .visualQuote {
+    font-size: 2rem;
+  }
+}
+
+/* Very narrow */
+@media (max-width: 359px) {
+  .pathRow {
+    grid-template-columns: 1fr;
+  }
+
+  .visualQuote {
+    max-width: 16ch;
+  }
 }

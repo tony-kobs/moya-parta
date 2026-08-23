@@ -36,7 +36,7 @@
 .primary {
   background: var(--color-primary);
   color: white;
-  box-shadow: 0 8px 18px rgba(108, 140, 245, 0.28);
+  box-shadow: 0 8px 18px rgba(31, 122, 118, 0.28);
 }
 
 .primary:hover:not(:disabled) {
@@ -45,7 +45,7 @@
 
 .secondary {
   background: var(--color-secondary-soft);
-  color: #2f6b55;
+  color: var(--color-primary-strong);
 }
 
 .ghost {

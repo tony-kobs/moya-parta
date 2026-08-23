@@ -1,17 +1,17 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppShell } from '@/components/navigation/AppShell';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { teacherApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
@@ -76,11 +76,14 @@ function TeacherDashboard() {
 
   if (!data.hasClass) {
     return (
-      <Card className={styles.hero}>
-        <div>
+      <section className={styles.onboarding}>
+        <div className={styles.onboardingCopy}>
           <p className={styles.kicker}>Перший крок</p>
           <h1>Створи свій клас</h1>
-          <p>Після цього зʼявиться код і посилання для учнів.</p>
+          <p>
+            Після цього зʼявиться код і посилання. Передай їх учням — або
+            батькам, щоб допомогли увійти.
+          </p>
         </div>
         <form
           className={styles.createForm}
@@ -91,123 +94,177 @@ function TeacherDashboard() {
             <input placeholder="3-Б" {...register('name')} />
           </label>
           {errors.name ? <em>{errors.name.message}</em> : null}
-          <Button type="submit" disabled={createClassMutation.isPending}>
+          <Button type="submit" disabled={createClassMutation.isPending} fullWidth>
             Створити клас
           </Button>
         </form>
-      </Card>
+      </section>
     );
   }
 
   return (
     <div className={styles.page}>
-      <Card className={styles.hero}>
-        <div>
-          <p className={styles.kicker}>Клас {data.className}</p>
-          <h1>Доброго ранку, {data.greetingName}!</h1>
+      <header className={styles.hero}>
+        <div className={styles.heroArt} aria-hidden="true">
+          <Image
+            src="/brand/teacher-hero.png"
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 70vw"
+            className={styles.heroArtImage}
+            priority
+          />
+          <div className={styles.heroShade} />
         </div>
-        <div className={styles.actions}>
-          <Link href="/teacher/invite">
-            <Button variant="secondary">Код для учнів</Button>
-          </Link>
-          <Link href="/teacher/tasks">
-            <Button>Створити завдання</Button>
-          </Link>
-          <Link href="/teacher/events">
-            <Button variant="secondary">Події класу</Button>
-          </Link>
+        <div className={styles.heroBody}>
+          <div className={styles.heroCopy}>
+            <p className={styles.kicker}>Клас {data.className}</p>
+            <h1>Доброго дня, {data.greetingName}</h1>
+            <p className={styles.heroLead}>
+              Код → завдання → життя класу.
+            </p>
+          </div>
+          <div className={styles.actions}>
+            <Link href="/teacher/invite" className={`${styles.chip} ${styles.chipInvite}`}>
+              <Image src="/brand/dash-invite.png" alt="" width={22} height={22} />
+              Код
+            </Link>
+            <Link href="/teacher/tasks" className={`${styles.chip} ${styles.chipTasks}`}>
+              <Image src="/brand/dash-tasks.png" alt="" width={22} height={22} />
+              Завдання
+            </Link>
+            <Link href="/teacher/events" className={`${styles.chip} ${styles.chipEvents}`}>
+              <Image src="/brand/dash-events.png" alt="" width={22} height={22} />
+              Події
+            </Link>
+          </div>
         </div>
-      </Card>
+      </header>
 
-      <div className={styles.stats}>
-        <Card>
-          <strong>{data.today.newWorks}</strong>
-          <span>нові роботи</span>
-        </Card>
-        <Card>
+      <section className={styles.stats} aria-label="Сьогодні коротко">
+        <Link href="/teacher/tasks" className={`${styles.stat} ${styles.statTasks}`}>
+          <Image src="/brand/dash-tasks.png" alt="" width={26} height={26} />
+          <div>
+            <strong>{data.today.newWorks}</strong>
+            <span>нові роботи</span>
+          </div>
+        </Link>
+        <div className={`${styles.stat} ${styles.statToday}`}>
           <strong>{data.today.doneTasks}</strong>
-          <span>виконаних сьогодні</span>
-        </Card>
-        <Card>
-          <strong>{data.today.activeQuest}</strong>
-          <span>активний квест</span>
-        </Card>
-        <Card>
-          <strong>{data.today.pendingPosts}</strong>
-          <span>на модерації</span>
-        </Card>
+          <span>виконано</span>
+        </div>
+        <div className={`${styles.stat} ${styles.statWins}`}>
+          <Image src="/brand/dash-wins.png" alt="" width={26} height={26} />
+          <div>
+            <strong>{data.today.activeQuest}</strong>
+            <span>квест</span>
+          </div>
+        </div>
+        <Link href="/teacher/moderation" className={`${styles.stat} ${styles.statBoard}`}>
+          <Image src="/brand/dash-board.png" alt="" width={26} height={26} />
+          <div>
+            <strong>{data.today.pendingPosts}</strong>
+            <span>дошка</span>
+          </div>
+        </Link>
+      </section>
+
+      <div className={styles.midRow}>
+        {data.today.nextEventTitle ? (
+          <SectionCard
+            tone="events"
+            title="Подія"
+            iconSrc="/brand/dash-events.png"
+            action={
+              <Link href="/teacher/events" className={styles.link}>
+                Усі
+              </Link>
+            }
+          >
+            <p className={styles.compactTitle}>{data.today.nextEventTitle}</p>
+            <p className={styles.muted}>
+              {data.today.nextEventDate
+                ? formatEventRange(
+                    data.today.nextEventDate,
+                    data.today.nextEventEndsAt ?? data.today.nextEventDate,
+                  )
+                : 'Незабаром'}
+            </p>
+          </SectionCard>
+        ) : null}
+
+        {data.goal ? (
+          <SectionCard
+            tone="class"
+            title="Прогрес класу"
+            iconSrc="/brand/dash-class.png"
+          >
+            <p className={styles.compactTitle}>{data.goal.title}</p>
+            <ProgressBar
+              value={data.goal.current}
+              max={data.goal.target}
+              label={`${data.goal.current} / ${data.goal.target} XP`}
+              tone="secondary"
+            />
+          </SectionCard>
+        ) : null}
       </div>
 
-      {data.today.nextEventTitle ? (
-        <Card>
-          <Badge tone="primary">Подія</Badge>
-          <h2>{data.today.nextEventTitle}</h2>
-          <p>
-            {data.today.nextEventDate
-              ? formatEventRange(
-                  data.today.nextEventDate,
-                  data.today.nextEventEndsAt ?? data.today.nextEventDate,
-                )
-              : 'Незабаром'}
-          </p>
-        </Card>
-      ) : null}
-
-      {data.goal ? (
-        <Card>
-          <h2>Прогрес класу</h2>
-          <p>{data.goal.title}</p>
-          <ProgressBar
-            value={data.goal.current}
-            max={data.goal.target}
-            label={`${data.goal.current} / ${data.goal.target} XP`}
-            tone="secondary"
-          />
-        </Card>
-      ) : null}
-
       <section className={styles.split}>
-        <Card>
-          <h2>Роботи на перевірку</h2>
+        <SectionCard
+          tone="tasks"
+          title="На перевірку"
+          iconSrc="/brand/dash-tasks.png"
+          action={
+            <Link href="/teacher/tasks" className={styles.link}>
+              Усі
+            </Link>
+          }
+        >
           {data.checkingWorks.length === 0 ? (
-            <EmptyState title="Все перевірено" description="Нових робіт немає." />
+            <p className={styles.emptyLine}>Все перевірено</p>
           ) : (
             <div className={styles.list}>
-              {data.checkingWorks.map((work) => (
+              {data.checkingWorks.slice(0, 4).map((work) => (
                 <div key={work.id} className={styles.work}>
-                  <div>
+                  <div className={styles.workCopy}>
                     <strong>{work.studentName}</strong>
                     <p>{work.homeworkTitle}</p>
-                    {work.answer ? (
-                      <p className={styles.answerPreview}>{work.answer}</p>
-                    ) : null}
                   </div>
-                  <Link href="/teacher/tasks">
+                  <Link href="/teacher/tasks" className={styles.workAction}>
                     <Button size="md">Перевірити</Button>
                   </Link>
                 </div>
               ))}
             </div>
           )}
-        </Card>
+        </SectionCard>
 
-        <Card>
-          <h2>Останні публікації</h2>
+        <SectionCard
+          tone="board"
+          title="Дошка"
+          iconSrc="/brand/dash-board.png"
+          action={
+            <Link href="/teacher/moderation" className={styles.link}>
+              Відкрити
+            </Link>
+          }
+        >
           {data.recentPosts.length === 0 ? (
-            <EmptyState title="Поки тихо" description="Клас ще не публікував." />
+            <p className={styles.emptyLine}>Поки тихо</p>
           ) : (
             <div className={styles.list}>
-              {data.recentPosts.map((post) => (
+              {data.recentPosts.slice(0, 4).map((post) => (
                 <div key={post.id} className={styles.work}>
-                  <div>
+                  <div className={styles.workCopy}>
                     <strong>{post.authorName}</strong>
-                    <p>{post.text}</p>
+                    <p className={styles.clamp}>{post.text}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </Card>
+        </SectionCard>
       </section>
     </div>
   );

@@ -1,6 +1,9 @@
 'use client';
 
+import { useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronDown } from 'lucide-react';
 import { AppShell } from '@/components/navigation/AppShell';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
@@ -8,11 +11,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PostCard } from '@/components/posts/PostCard';
-import { QuestCard } from '@/components/quests/QuestCard';
-import { EventCard } from '@/components/events/EventCard';
+import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { studentApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
+import { formatEventRange } from '@/lib/format';
+import type { ClassEvent, Quest } from '@/types';
 import styles from './class.module.css';
 
 export default function ClassPage() {
@@ -60,84 +64,207 @@ function ClassContent() {
     );
   }
 
+  const activeQuests = data.quests.filter((quest) => !quest.completed);
+  const activeEvents = data.events.filter(
+    (event) => event.status === 'upcoming' || event.status === 'live',
+  );
+
   return (
     <div className={styles.page}>
-      <Card className={styles.hero}>
-        <div>
-          <p className={styles.kicker}>Наш клас</p>
-          <h1>{data.class.name}</h1>
-          <p className={styles.teacher}>Учитель: {data.teacher?.displayName}</p>
-        </div>
-        <div className={styles.students}>
-          {data.students.map((student) => (
-            <Avatar
-              key={student.id}
-              emoji={student.avatarEmoji}
-              color={student.avatarColor}
-              size="sm"
-              label={student.displayName}
-            />
-          ))}
-        </div>
-      </Card>
-
-      <Card>
-        <h2>Спільна мета</h2>
-        <p className={styles.goal}>{data.goal.title}</p>
-        <ProgressBar
-          value={data.goal.current}
-          max={data.goal.target}
-          label={`${data.goal.current} / ${data.goal.target} XP`}
-          tone="secondary"
-        />
-        {data.goal.current >= data.goal.target ? (
-          <p className={styles.celebration}>Ми зробили це разом! 🎉</p>
-        ) : null}
-      </Card>
-
-      <section className={styles.board}>
-        <h2>Дошка класу</h2>
-        {data.board.length === 0 ? (
-          <EmptyState
-            title="Дошка ще порожня"
-            description="Можеш стати першим, хто щось покаже класу."
-          />
-        ) : (
-          data.board.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onReact={(reaction) =>
-                reactMutation.mutate({ postId: post.id, reaction })
-              }
-            />
-          ))
-        )}
-      </section>
-
-      <section className={styles.sideGrid}>
-        <div>
-          <h2>Активні квести</h2>
-          <div className={styles.stack}>
-            {data.quests.map((quest) => (
-              <QuestCard key={quest.id} quest={quest} />
-            ))}
+      <Card className={styles.overview}>
+        <div className={styles.hero}>
+          <div>
+            <p className={styles.kicker}>Наш клас</p>
+            <h1>{data.class.name}</h1>
+            <p className={styles.teacher}>
+              Учитель: {data.teacher?.displayName}
+            </p>
           </div>
-        </div>
-        <div>
-          <h2>Події</h2>
-          <div className={styles.stack}>
-            {data.events.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                joined={Boolean(user && event.participantIds.includes(user.id))}
-                onJoin={() => joinMutation.mutate(event.id)}
+          <div className={styles.students}>
+            {data.students.map((student) => (
+              <Avatar
+                key={student.id}
+                emoji={student.avatarEmoji}
+                color={student.avatarColor}
+                size="sm"
+                label={student.displayName}
               />
             ))}
           </div>
         </div>
-      </section>
+
+        <div className={styles.goalBlock}>
+          <h2>Спільна мета</h2>
+          <p className={styles.goal}>{data.goal.title}</p>
+          <ProgressBar
+            value={data.goal.current}
+            max={data.goal.target}
+            label={`${data.goal.current} / ${data.goal.target} XP`}
+            tone="secondary"
+          />
+          {data.goal.current >= data.goal.target ? (
+            <p className={styles.celebration}>Ми зробили це разом! 🎉</p>
+          ) : null}
+        </div>
+      </Card>
+
+      <div className={styles.stack}>
+        <ComposePostCard />
+
+        <CompactPanel
+          title="Активні квести"
+          count={activeQuests.length}
+          href="/quests"
+          empty="Зараз активних квестів немає"
+        >
+          {activeQuests.map((quest) => (
+            <QuestPulseRow key={quest.id} quest={quest} />
+          ))}
+        </CompactPanel>
+
+        <CompactPanel
+          title="Події"
+          count={activeEvents.length}
+          href="/events"
+          empty="Найближчих подій немає"
+        >
+          {activeEvents.map((event) => (
+            <EventPulseRow
+              key={event.id}
+              event={event}
+              joined={Boolean(user && event.participantIds.includes(user.id))}
+              busy={joinMutation.isPending}
+              onJoin={() => joinMutation.mutate(event.id)}
+            />
+          ))}
+        </CompactPanel>
+
+        <section className={styles.board}>
+          <div className={styles.sectionHead}>
+            <h2>Дошка класу</h2>
+          </div>
+          {data.board.length === 0 ? (
+            <EmptyState
+              title="Дошка ще порожня"
+              description="Можеш стати першим, хто щось покаже класу."
+            />
+          ) : (
+            <div className={styles.boardList}>
+              {data.board.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onReact={(reaction) =>
+                    reactMutation.mutate({ postId: post.id, reaction })
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function CompactPanel({
+  title,
+  count,
+  href,
+  empty,
+  children,
+}: {
+  title: string;
+  count: number;
+  href: string;
+  empty: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(count > 0);
+
+  return (
+    <div className={styles.pulse}>
+      <button
+        type="button"
+        className={styles.pulseToggle}
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span>
+          {title}
+          {count > 0 ? ` · ${count}` : ''}
+        </span>
+        <ChevronDown
+          size={18}
+          className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open ? (
+        <div className={styles.pulseBody}>
+          {count === 0 ? (
+            <p className={styles.pulseEmpty}>{empty}</p>
+          ) : (
+            children
+          )}
+        </div>
+      ) : null}
+
+      <Link href={href} className={styles.pulseMore}>
+        Детальніше
+      </Link>
+    </div>
+  );
+}
+
+function QuestPulseRow({ quest }: { quest: Quest }) {
+  const step = quest.currentStep ?? 0;
+
+  return (
+    <div className={styles.pulseItem}>
+      <span className={styles.pulseEmoji} aria-hidden="true">
+        {quest.illustration}
+      </span>
+      <div className={styles.pulseCopy}>
+        <strong>{quest.title}</strong>
+        <span>
+          {quest.completed
+            ? 'Завершено'
+            : `Крок ${step} із ${quest.totalSteps}`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function EventPulseRow({
+  event,
+  joined,
+  busy,
+  onJoin,
+}: {
+  event: ClassEvent;
+  joined: boolean;
+  busy: boolean;
+  onJoin: () => void;
+}) {
+  return (
+    <div className={styles.pulseItem}>
+      <div className={styles.pulseCopy}>
+        <strong>{event.title}</strong>
+        <span>{formatEventRange(event.startsAt, event.endsAt)}</span>
+      </div>
+      {event.status === 'upcoming' || event.status === 'live' ? (
+        <button
+          type="button"
+          className={styles.pulseJoin}
+          disabled={joined || busy}
+          onClick={onJoin}
+        >
+          {joined ? 'Ти з нами' : 'Приєднатися'}
+        </button>
+      ) : null}
     </div>
   );
 }

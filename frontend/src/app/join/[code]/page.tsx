@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { BrandMark } from '@/components/brand/BrandMark';
 import {
   AvatarPicker,
   type AvatarOption,
@@ -111,9 +112,7 @@ export default function JoinClassPage() {
   return (
     <main className={styles.page}>
       <form className={styles.card} onSubmit={onSubmit}>
-        <div className={styles.logo} aria-hidden="true">
-          {avatarEmoji}
-        </div>
+        <BrandMark href="/" size="lg" />
         <h1>Привіт у класі {preview.className}!</h1>
         <p className={styles.lead}>
           Учитель: {preview.teacherName}. У класі вже {preview.studentsCount} учнів.

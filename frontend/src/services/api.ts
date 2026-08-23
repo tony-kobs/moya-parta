@@ -6,6 +6,7 @@ import type {
   ClassEvent,
   DeskData,
   Homework,
+  HomeworkAnalytics,
   NotificationItem,
   Post,
   Quest,
@@ -158,6 +159,8 @@ export const teacherApi = {
         pendingPosts: number;
       };
       homeworks: Homework[];
+      activeHomeworks: Homework[];
+      endedHomeworks: Homework[];
       checkingWorks: Array<{
         id: string;
         studentName?: string;
@@ -173,7 +176,8 @@ export const teacherApi = {
     subject: string;
     title: string;
     description: string;
-    dueDate: string;
+    startsAt: string;
+    endsAt: string;
     xpReward: number;
     linkedQuizId?: string;
   }) =>
@@ -183,6 +187,8 @@ export const teacherApi = {
     }),
   deleteHomework: (id: string) =>
     apiRequest<Homework>(`/teacher/homework/${id}`, { method: 'DELETE' }),
+  getHomeworkAnalytics: (id: string) =>
+    apiRequest<HomeworkAnalytics>(`/teacher/homework/${id}/analytics`),
   reviewSubmission: (
     id: string,
     payload: {

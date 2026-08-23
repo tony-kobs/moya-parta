@@ -1,4 +1,4 @@
-.card {
+﻿.card {
   max-width: 420px;
   margin: 0 auto;
   text-align: center;
@@ -18,5 +18,5 @@
 
 .role {
   font-weight: 800 !important;
-  color: #3552b8 !important;
+  color: var(--color-primary-strong) !important;
 }

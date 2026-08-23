@@ -2,43 +2,49 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
   min-height: var(--header-height);
-  margin-bottom: var(--space-4);
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 30;
+}
+
+.titleWrap {
+  min-width: 0;
 }
 
 .title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: clamp(1.15rem, 4.2vw, 1.45rem);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.iconBtn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+.profileLink {
   display: grid;
-  place-items: center;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
-  color: var(--color-text);
-  position: relative;
+  border-radius: 50%;
 }
 
-.iconWrap {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
+@media (min-width: 440px) {
+  .actions {
+    gap: var(--space-3);
+  }
 }
 
+/* Desktop: notifications in top bar; profile stays in left sidebar */
 @media (min-width: 1028px) {
   .header {
+    margin-bottom: 24px;
+  }
+
+  .profileLink {
     display: none;
   }
 }

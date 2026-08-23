@@ -1,0 +1,128 @@
+.dock {
+  display: none;
+}
+
+.collapsed {
+  display: none;
+}
+
+@media (min-width: 1028px) {
+  .dock {
+    display: flex;
+    flex-direction: column;
+    width: min(380px, 34vw);
+    min-width: 320px;
+    max-width: 420px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.98);
+    border-left: 1px solid rgba(30, 43, 42, 0.08);
+    z-index: 20;
+  }
+
+  .collapsed {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 56px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    flex-shrink: 0;
+    padding-top: 18px;
+    background: rgba(255, 255, 255, 0.96);
+    border-left: 1px solid rgba(30, 43, 42, 0.08);
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30, 43, 42, 0.08);
+    flex-shrink: 0;
+  }
+
+  .headTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-primary-strong);
+  }
+
+  .headTitle strong {
+    font-size: 1.02rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hideBtn,
+  .expandBtn {
+    border: none;
+    background: var(--color-primary-soft);
+    color: var(--color-primary-strong);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .hideBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .expandBtn {
+    width: 44px;
+    min-height: 88px;
+    border-radius: 14px;
+    flex-direction: column;
+    padding: 10px 0;
+  }
+
+  .iconWrap {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .body {
+    flex: 1;
+    min-height: 0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .body > * {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+@media (min-width: 1440px) {
+  .dock {
+    width: 400px;
+    max-width: 440px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .dock {
+    width: 440px;
+    max-width: 480px;
+  }
+}

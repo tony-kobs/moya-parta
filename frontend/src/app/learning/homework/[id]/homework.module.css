@@ -4,7 +4,7 @@
 
 .kicker {
   margin: 0 0 var(--space-2);
-  color: #3552b8;
+  color: var(--color-primary-strong);
   font-weight: 800;
 }
 

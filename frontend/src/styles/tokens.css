@@ -1,20 +1,24 @@
 :root {
-  --color-background: #f7f8fc;
+  /* Brand: Моя парта — daylight classroom (teal + oak), not purple SaaS */
+  --color-background: #f2f6f5;
   --color-surface: #ffffff;
-  --color-text: #263238;
-  --color-text-muted: #667085;
-  --color-primary: #6c8cf5;
-  --color-primary-soft: #e8eefd;
-  --color-secondary: #7bc6a4;
-  --color-secondary-soft: #e8f6ef;
-  --color-warm: #f4c95d;
-  --color-warm-soft: #fdf6e3;
+  --color-text: #1e2b2a;
+  --color-text-muted: #5f6f6d;
+  --color-primary: #1f7a76;
+  --color-primary-strong: #165e5b;
+  --color-primary-soft: #e3f3f1;
+  --color-secondary: #5fa88a;
+  --color-secondary-soft: #e7f5ee;
+  --color-warm: #e0a93a;
+  --color-warm-soft: #fbf3de;
+  --color-oak: #c4a574;
+  --color-oak-soft: #f5efe4;
   --color-pink: #e9a6b8;
-  --color-sky: #b8ddf5;
+  --color-sky: #8ec5d8;
   --color-lavender: #c9b8ea;
-  --color-success: #74b88a;
-  --color-warning: #e7b85c;
-  --color-danger: #d98282;
+  --color-success: #5f9f74;
+  --color-warning: #d4a33a;
+  --color-danger: #c86b6b;
 
   --font-family: 'Nunito Sans', 'Nunito', system-ui, sans-serif;
 
@@ -34,16 +38,80 @@
   --radius-xl: 28px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 8px 24px rgba(38, 50, 56, 0.06);
-  --shadow-soft: 0 4px 14px rgba(38, 50, 56, 0.05);
-  --shadow-focus: 0 0 0 3px rgba(108, 140, 245, 0.25);
+  --shadow-card: 0 10px 28px rgba(30, 43, 42, 0.07);
+  --shadow-soft: 0 4px 14px rgba(30, 43, 42, 0.05);
+  --shadow-focus: 0 0 0 3px rgba(31, 122, 118, 0.28);
 
   --sidebar-width: 248px;
   --bottom-nav-height: 72px;
-  --header-height: 64px;
+  --header-height: 56px;
+
+  /* Layout canvas — phone → ultrawide */
+  --page-pad-x: 14px;
+  --page-pad-y: 12px;
+  --content-max: 100%;
+  --section-gap: 10px;
+  --rail-gap: 10px;
 
   --transition-fast: 160ms ease;
   --transition-normal: 240ms ease;
+}
+
+/* 440px — large phones */
+@media (min-width: 440px) {
+  :root {
+    --page-pad-x: 18px;
+    --page-pad-y: 14px;
+    --rail-gap: 10px;
+    --section-gap: 10px;
+    --header-height: 60px;
+  }
+}
+
+/* 768px — tablet */
+@media (min-width: 768px) {
+  :root {
+    --page-pad-x: 28px;
+    --page-pad-y: 20px;
+    --rail-gap: 12px;
+    --section-gap: 12px;
+    --header-height: 64px;
+    --content-max: 100%;
+  }
+}
+
+/* 1028px — desktop + sidebar */
+@media (min-width: 1028px) {
+  :root {
+    --sidebar-width: 260px;
+    --page-pad-x: 32px;
+    --page-pad-y: 28px;
+    --rail-gap: 12px;
+    --section-gap: 12px;
+    --content-max: 960px;
+    --bottom-nav-height: 0px;
+  }
+}
+
+/* 1440px — wide desktop */
+@media (min-width: 1440px) {
+  :root {
+    --sidebar-width: 280px;
+    --page-pad-x: 40px;
+    --page-pad-y: 32px;
+    --content-max: 1120px;
+    --rail-gap: 12px;
+  }
+}
+
+/* 1920px — ultrawide */
+@media (min-width: 1920px) {
+  :root {
+    --sidebar-width: 300px;
+    --page-pad-x: 48px;
+    --page-pad-y: 40px;
+    --content-max: 1280px;
+  }
 }
 
 *,

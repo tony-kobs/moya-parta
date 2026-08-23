@@ -1,0 +1,38 @@
+/* Shared section accents — map panels to sidebar areas */
+:root {
+  --sec-today: #1f7a76;
+  --sec-today-soft: #e3f3f1;
+  --sec-today-grad: linear-gradient(135deg, #d8efec 0%, #ffffff 70%);
+
+  --sec-tasks: #c4841a;
+  --sec-tasks-soft: #fbf3de;
+  --sec-tasks-grad: linear-gradient(135deg, #f7e7c2 0%, #ffffff 72%);
+
+  --sec-events: #2f7ea8;
+  --sec-events-soft: #e5f3fa;
+  --sec-events-grad: linear-gradient(135deg, #d7ebf5 0%, #ffffff 72%);
+
+  --sec-board: #6b7bb8;
+  --sec-board-soft: #eef0f8;
+  --sec-board-grad: linear-gradient(135deg, #e4e8f6 0%, #ffffff 72%);
+
+  --sec-class: #3d9b7a;
+  --sec-class-soft: #e7f5ee;
+  --sec-class-grad: linear-gradient(135deg, #d8f0e6 0%, #ffffff 72%);
+
+  --sec-learning: #5f9f74;
+  --sec-learning-soft: #e8f5ec;
+  --sec-learning-grad: linear-gradient(135deg, #d9f0e1 0%, #ffffff 72%);
+
+  --sec-wins: #c9a227;
+  --sec-wins-soft: #fbf6e3;
+  --sec-wins-grad: linear-gradient(135deg, #f6ecc4 0%, #ffffff 72%);
+
+  --sec-invite: #1f7a76;
+  --sec-invite-soft: #e3f3f1;
+  --sec-invite-grad: linear-gradient(135deg, #cfeae7 0%, #ffffff 72%);
+
+  --sec-chat: #3d8f9e;
+  --sec-chat-soft: #e6f4f6;
+  --sec-chat-grad: linear-gradient(135deg, #d5eef2 0%, #ffffff 72%);
+}

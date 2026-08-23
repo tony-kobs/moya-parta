@@ -10,12 +10,12 @@
 
 .primary {
   background: var(--color-primary-soft);
-  color: #3552b8;
+  color: var(--color-primary-strong);
 }
 
 .secondary {
   background: var(--color-secondary-soft);
-  color: #2f6b55;
+  color: var(--color-primary-strong);
 }
 
 .warm {

@@ -78,6 +78,9 @@ export function badgeForHref(
   if (href === '/events') {
     return badges.events;
   }
+  if (href === '/quests') {
+    return badges.learning;
+  }
 
   return 0;
 }
@@ -97,7 +100,7 @@ export function sectionFromPath(pathname: string): NavSection | null {
   ) {
     return 'board';
   }
-  if (pathname.startsWith('/learning')) {
+  if (pathname.startsWith('/learning') || pathname.startsWith('/quests')) {
     return 'learning';
   }
   if (pathname.startsWith('/teacher/tasks')) {

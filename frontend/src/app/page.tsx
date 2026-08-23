@@ -1,141 +1,152 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import {
-  BookOpen,
-  HeartHandshake,
-  School,
-  Sparkles,
-  Trophy,
-  Users,
-} from 'lucide-react';
+import { BrandMark } from '@/components/brand/BrandMark';
 import { Button } from '@/components/ui/Button';
 import styles from './page.module.css';
+
+const steps = [
+  {
+    title: 'Вчитель створює клас',
+    text: 'Реєстрація, назва класу і код для учнів.',
+    icon: '/brand/icon-create-class.png',
+    alt: '',
+  },
+  {
+    title: 'Учні заходять за кодом',
+    text: 'Посилання або короткий код — і дитина вже в класі. За потреби допоможе мама чи тато.',
+    icon: '/brand/icon-join-code.png',
+    alt: '',
+  },
+  {
+    title: 'Життя класу починається',
+    text: 'Парта, дошка, завдання, квести й маленькі перемоги.',
+    icon: '/brand/icon-class-life.png',
+    alt: '',
+  },
+] as const;
 
 export default function LandingPage() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.brand}>
-          <span aria-hidden="true">🪑</span>
-          <strong>Цифровий світ класу</strong>
-        </div>
+        <BrandMark size="md" tagline inverted />
         <Link href="/login" className={styles.loginLink}>
           Увійти
         </Link>
       </header>
 
-      <section className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Для учнів 1–4 класів</p>
-          <h1>Це твій цифровий клас</h1>
-          <p className={styles.subtitle}>
-            Місце, де можна навчатися, спілкуватися, творити та залишатися
-            разом із класом.
+      <section className={styles.hero} aria-label="Моя парта">
+        <div className={styles.heroMedia}>
+          <Image
+            src="/brand/hero.png"
+            alt="Затишна шкільна парта в ранковому світлі класу"
+            fill
+            priority
+            sizes="100vw"
+            className={styles.heroImage}
+          />
+          <div className={styles.heroShade} aria-hidden="true" />
+        </div>
+
+        <div className={styles.heroInner}>
+          <p className={`${styles.eyebrow} ${styles.rise}`} style={{ animationDelay: '40ms' }}>
+            Для учнів 1–4 класів
           </p>
-          <div className={styles.ctaRow}>
+          <h1 className={`${styles.brandHero} ${styles.rise}`} style={{ animationDelay: '120ms' }}>
+            Моя парта
+          </h1>
+          <p className={`${styles.headline} ${styles.rise}`} style={{ animationDelay: '200ms' }}>
+            У кожного — своя парта. У кожного — своє місце в класі.
+          </p>
+          <p className={`${styles.subtitle} ${styles.rise}`} style={{ animationDelay: '280ms' }}>
+            Цифровий клас, де можна навчатися, творити й бути разом — без
+            рейтингів між дітьми.
+          </p>
+          <div className={`${styles.ctaRow} ${styles.rise}`} style={{ animationDelay: '360ms' }}>
             <Link href="/register">
               <Button>Я вчитель — створити клас</Button>
             </Link>
             <Link href="/join">
-              <Button variant="ghost">У мене є код класу</Button>
+              <Button variant="ghost" className={styles.ctaGhost}>
+                У мене є код класу
+              </Button>
             </Link>
-          </div>
-          <p className={styles.loginHint}>
-            Вже є акаунт? <Link href="/login">Увійти</Link>
-          </p>
-        </div>
-
-        <div className={styles.deskPreview} aria-label="Стилізована Моя парта">
-          <div className={styles.deskSurface}>
-            <div className={styles.previewAvatar}>🦊</div>
-            <div className={styles.previewCard}>
-              <strong>Марійка</strong>
-              <span>3-Б · Рівень 4</span>
-              <div className={styles.previewXp}>████████░░ 780 XP</div>
-            </div>
-            <div className={styles.previewSticky}>⭐</div>
-            <div className={styles.previewNote}>Дроби · +20 XP</div>
-            <div className={styles.previewBoard}>LEGO 🚀</div>
           </div>
         </div>
       </section>
 
       <section id="how" className={styles.section}>
-        <h2>Як це працює</h2>
-        <p className={styles.sectionLead}>
-          Дитина заходить не в журнал, а у свій цифровий клас.
-        </p>
-        <div className={styles.grid3}>
-          <article className={styles.feature}>
-            <ArmIcon />
-            <h3>Вчитель створює клас</h3>
-            <p>Реєстрація вчителя, назва класу і код для учнів.</p>
-          </article>
-          <article className={styles.feature}>
-            <School size={24} />
-            <h3>Учні заходять за кодом</h3>
-            <p>Посилання або короткий код з дошки — і дитина в своєму класі.</p>
-          </article>
-          <article className={styles.feature}>
-            <BookOpen size={24} />
-            <h3>Далі — життя класу</h3>
-            <p>Парта, дошка, завдання, квести й маленькі перемоги.</p>
-          </article>
+        <div className={styles.sectionHead}>
+          <h2>Як це працює</h2>
+          <p>Дитина заходить не в журнал, а у свій цифровий клас.</p>
         </div>
+        <ol className={styles.steps}>
+          {steps.map((step, index) => (
+            <li key={step.title} className={styles.step}>
+              <span className={styles.stepNum} aria-hidden="true">
+                {index + 1}
+              </span>
+              <Image
+                src={step.icon}
+                alt={step.alt}
+                width={72}
+                height={72}
+                className={styles.stepIcon}
+              />
+              <div>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section className={styles.sectionAlt}>
-        <div className={styles.split}>
-          <div>
-            <h2>Моя парта</h2>
-            <p>
-              Головний екран дитини. Тут видно, що важливо сьогодні, скільки XP
-              вже є, і що цікавого відбувається в класі.
-            </p>
-          </div>
-          <div className={styles.softPanel}>🪑 · 📘 · ⭐ · 🎒</div>
+      <section className={styles.deskSection}>
+        <div className={styles.deskCopy}>
+          <p className={styles.kicker}>Головний екран учня</p>
+          <h2>Моя парта</h2>
+          <p>
+            Тут видно, що важливо сьогодні, скільки вже пройдено, і що цікавого
+            в класі. Без порівнянь і таблиць лідерів — лише власний шлях.
+          </p>
+        </div>
+        <div className={styles.deskVisual}>
+          <Image
+            src="/brand/desk-scene.png"
+            alt="Вид зверху на шкільну парту з зошитом і олівцями"
+            fill
+            sizes="(max-width: 900px) 100vw, 52vw"
+            className={styles.deskImage}
+          />
         </div>
       </section>
 
       <section className={styles.section}>
-        <h2>Квести та досягнення</h2>
-        <div className={styles.grid2}>
-          <article className={styles.feature}>
-            <Sparkles size={24} />
-            <h3>Квести</h3>
-            <p>Маленькі пригоди, які роблять навчання частиною світу класу.</p>
-          </article>
-          <article className={styles.feature}>
-            <Trophy size={24} />
-            <h3>Мої перемоги</h3>
-            <p>Без рейтингів між дітьми — лише власні кроки вперед.</p>
-          </article>
+        <div className={styles.sectionHead}>
+          <h2>Закритий і спокійний клас</h2>
+          <p>
+            Клас лише за запрошенням. Пости зʼявляються одразу — учитель може
+            приховати, якщо треба. Лише позитивні реакції, без відкритого
+            пошуку людей.
+          </p>
         </div>
-      </section>
-
-      <section className={styles.sectionAlt}>
-        <h2>Безпечне середовище</h2>
-        <p className={styles.sectionLead}>
-          Закритий клас за запрошенням, модерація публікацій і тільки позитивні
-          реакції. Без відкритого пошуку людей.
-        </p>
-        <div className={styles.grid2}>
-          <article className={styles.feature}>
-            <Users size={24} />
+        <div className={styles.roles}>
+          <article>
             <h3>Для вчителя</h3>
-            <p>Клас, код запрошення, завдання, перевірка робіт і модерація.</p>
+            <p>Клас, код, завдання, перевірка робіт, події й чат.</p>
           </article>
-          <article className={styles.feature}>
-            <HeartHandshake size={24} />
+          <article>
             <h3>Для учнів</h3>
-            <p>Своя парта, друзі з класу, творчість і навчання без рейтингів.</p>
+            <p>Своя парта, друзі з класу, творчість і маленькі перемоги.</p>
           </article>
         </div>
       </section>
 
       <section className={styles.finalCta}>
-        <h2>Готовий відкрити клас?</h2>
-        <p>У кожного є своя парта. У кожного є своє місце в класі.</p>
-        <div className={styles.ctaRow} style={{ justifyContent: 'center' }}>
+        <h2>Готові відкрити клас?</h2>
+        <p>Почніть з одного коду — і в кожного зʼявиться своя парта.</p>
+        <div className={styles.ctaRow}>
           <Link href="/register">
             <Button>Створити клас</Button>
           </Link>
@@ -146,13 +157,12 @@ export default function LandingPage() {
       </section>
 
       <footer className={styles.footer}>
-        <span>© {new Date().getFullYear()} Цифровий світ класу</span>
-        <span>MVP для школи, вчителя, батьків і дітей</span>
+        <BrandMark size="sm" href="/" />
+        <p>
+          © {new Date().getFullYear()} Моя парта · для вчителя й учнів 1–4
+          класів
+        </p>
       </footer>
     </main>
   );
-}
-
-function ArmIcon() {
-  return <span aria-hidden="true">🪑</span>;
 }

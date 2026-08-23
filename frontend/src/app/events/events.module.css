@@ -1,10 +1,23 @@
 .page {
-  display: grid;
-  gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lead {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 @media (min-width: 1028px) {
   .page {
-    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .lead {
+    grid-column: 1 / -1;
   }
 }

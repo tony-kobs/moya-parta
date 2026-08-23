@@ -1,12 +1,19 @@
-.page {
-  display: grid;
-  gap: var(--space-5);
+﻿.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.page h2 {
+  margin: 0;
+  font-size: 1.22rem;
 }
 
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  margin-bottom: 32px;
 }
 
 .tab {
@@ -20,15 +27,49 @@
 }
 
 .tabActive {
-  background: #3552b8;
-  border-color: #3552b8;
+  background: var(--color-primary-strong);
+  border-color: var(--color-primary-strong);
   color: #fff;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.block {
+  display: grid;
+  gap: 22px;
+}
+
+.blockHead,
+.sectionHead {
+  display: grid;
+  gap: 12px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .form {
   display: grid;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
+  gap: 18px;
+}
+
+.dateRow {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .dateRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
 }
 
 .form input,
@@ -49,37 +90,97 @@
 .form em {
   color: #9a4545;
   font-style: normal;
+  margin: -4px 0 0;
 }
 
 .label {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   font-weight: 700;
 }
 
+.submit {
+  margin-top: 6px;
+}
+
 .hint {
-  margin: 8px 0 0;
-  color: var(--color-text-muted);
-}
-
-.list {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.list h2 {
   margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .itemRow {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.analyticsCard {
+  display: grid;
+  gap: 14px;
+}
+
+.analyticsCard h3,
+.analyticsCard h4 {
+  margin: 0;
+}
+
+.analyticsStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.topBlock,
+.participants {
   display: grid;
   gap: 10px;
 }
 
+.topList,
+.participantList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.topList li,
+.participantList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+}
+
+.participantName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.participantMeta {
+  color: var(--color-text-muted);
+}
+
 .bank {
   display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-3);
+  gap: 16px;
 }
 
 .bankGroup h3 {
@@ -93,10 +194,14 @@
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 12px;
+  padding: 14px;
   border-radius: 14px;
-  background: #f7f8fc;
-  margin-bottom: 8px;
+  background: var(--color-primary-soft);
+}
+
+.bankItem + .bankItem,
+.quizCard + .quizCard {
+  margin-top: 10px;
 }
 
 .bankItem p,
@@ -112,9 +217,9 @@
 .fieldset {
   border: 1.5px solid rgba(38, 50, 56, 0.1);
   border-radius: 14px;
-  padding: 12px;
+  padding: 14px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .fieldset legend {
@@ -124,7 +229,7 @@
 
 .reviewCard {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .answer {
@@ -132,11 +237,11 @@
   padding: 12px 14px;
   border-radius: 14px;
   background: #eef2ff;
-  border-left: 4px solid #3552b8;
+  border-left: 4px solid var(--color-primary-strong);
 }
 
 .reviewActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }

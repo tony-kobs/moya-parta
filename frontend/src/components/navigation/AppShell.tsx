@@ -9,6 +9,7 @@ import { BottomNavigation } from './BottomNavigation';
 import { AppHeader } from './AppHeader';
 import { Toast } from '@/components/ui/Toast';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { ChatDock } from '@/components/chat/ChatDock';
 import { useAuthStore } from '@/store/authStore';
 import { sectionFromPath } from '@/hooks/useNavBadges';
 import { navApi } from '@/services/api';
@@ -38,12 +39,12 @@ export function AppShell({ children, title, allowedRoles }: AppShellProps) {
     }
 
     if (!isAuthenticated || !user) {
-      router.replace('/login');
+      router.replace('/');
       return;
     }
 
     if (!allowedRoles.includes(user.role)) {
-      router.replace('/login');
+      router.replace('/');
     }
   }, [allowedRoles, isAuthenticated, isLoading, router, user]);
 
@@ -92,6 +93,7 @@ export function AppShell({ children, title, allowedRoles }: AppShellProps) {
         <AppHeader title={title} />
         <div className={styles.content}>{children}</div>
       </div>
+      <ChatDock />
       <BottomNavigation />
       <Toast />
     </div>

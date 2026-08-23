@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { BrandMark } from '@/components/brand/BrandMark';
 import styles from '../login/login.module.css';
 
 export default function JoinEntryPage() {
@@ -13,9 +14,7 @@ export default function JoinEntryPage() {
   return (
     <main className={styles.page}>
       <div className={styles.card}>
-        <div className={styles.logo} aria-hidden="true">
-          🎒
-        </div>
+        <BrandMark href="/" size="lg" />
         <h1>Код класу</h1>
         <p className={styles.lead}>
           Вчитель дає код або посилання. Якщо треба — попроси маму чи тата допомогти ввести.

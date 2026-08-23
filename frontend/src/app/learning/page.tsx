@@ -1,18 +1,21 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { AppShell } from '@/components/navigation/AppShell';
-import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { Button } from '@/components/ui/Button';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { HomeworkCard } from '@/components/learning/HomeworkCard';
-import { QuestCard } from '@/components/quests/QuestCard';
 import { studentApi } from '@/services/api';
 import { SUBJECT_ICONS, SUBJECT_LABELS, type Subject } from '@/types';
-import { useUiStore } from '@/store/uiStore';
 import styles from './learning.module.css';
+
+type FocusTab = 'today' | 'waiting' | 'later' | 'tests' | 'missed';
 
 export default function LearningPage() {
   return (
@@ -23,156 +26,254 @@ export default function LearningPage() {
 }
 
 function LearningContent() {
-  const showToast = useUiStore((state) => state.showToast);
-  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<FocusTab | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['learning'],
     queryFn: studentApi.getLearning,
   });
 
-  const questMutation = useMutation({
-    mutationFn: (id: string) => studentApi.advanceQuest(id),
-    onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['learning'] });
-      void queryClient.invalidateQueries({ queryKey: ['desk'] });
-      showToast(result.message);
-    },
-  });
+  const buckets = useMemo(() => {
+    const homework = data?.homework ?? [];
+    return {
+      today: homework.filter((item) => item.bucket === 'today'),
+      waiting: homework.filter((item) => item.bucket === 'waiting'),
+      later: homework.filter((item) => item.bucket === 'later'),
+    };
+  }, [data?.homework]);
 
   if (isLoading) {
     return <LoadingState label="Готуємо навчання..." />;
   }
 
   if (isError || !data) {
-    return <EmptyState title="Щось пішло не так" description="Спробуй ще раз." />;
+    return (
+      <EmptyState title="Щось пішло не так" description="Спробуй ще раз." />
+    );
   }
 
-  const today = data.homework.filter((item) => item.bucket === 'today');
-  const waiting = data.homework.filter((item) => item.bucket === 'waiting');
-  const later = data.homework.filter((item) => item.bucket === 'later');
+  const missed = data.materials.filter((item) => item.missedLesson);
+  const activeTab: FocusTab =
+    tab ??
+    (buckets.today.length > 0
+      ? 'today'
+      : buckets.waiting.length > 0
+        ? 'waiting'
+        : 'today');
+
+  const focusCount = {
+    today: buckets.today.length,
+    waiting: buckets.waiting.length,
+    later: buckets.later.length,
+    tests: data.quizzes.length,
+    missed: missed.length,
+  };
+
+  const tabs: Array<{ key: FocusTab; label: string }> = [
+    { key: 'today', label: 'Сьогодні' },
+    { key: 'waiting', label: 'Чекає' },
+    { key: 'later', label: 'Пізніше' },
+    { key: 'tests', label: 'Тести' },
+    { key: 'missed', label: 'Пропущене' },
+  ];
 
   return (
     <div className={styles.page}>
-      <section>
-        <h2>Сьогоднішні завдання</h2>
-        <div className={styles.grid}>
-          {today.length === 0 ? (
-            <EmptyState
-              title="Сьогодні все спокійно 🌿"
-              description="Нових завдань поки немає."
-            />
-          ) : (
-            today.map((homework) => (
-              <HomeworkCard
-                key={homework.id}
-                homework={homework}
-                onAction={() => {
-                  window.location.href = `/learning/homework/${homework.id}`;
-                }}
-              />
-            ))
-          )}
+      <motion.section
+        className={styles.hero}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className={styles.heroCopy}>
+          <p className={styles.kicker}>Твій шлях</p>
+          <h1>Моє навчання</h1>
+          <p className={styles.lead}>
+            Один крок за раз. Без поспіху — просто те, що важливо сьогодні.
+          </p>
         </div>
-      </section>
-
-      {waiting.length > 0 ? (
-        <section>
-          <h2>Це завдання ще чекає на тебе</h2>
-          <div className={styles.grid}>
-            {waiting.map((homework) => (
-              <HomeworkCard
-                key={homework.id}
-                homework={homework}
-                onAction={() => {
-                  window.location.href = `/learning/homework/${homework.id}`;
-                }}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section>
-        <h2>Майбутні завдання</h2>
-        <div className={styles.grid}>
-          {later.length === 0 ? (
-            <EmptyState title="Поки тихо" description="Нових завдань попереду немає." />
-          ) : (
-            later.map((homework) => (
-              <HomeworkCard
-                key={homework.id}
-                homework={homework}
-                onAction={() => {
-                  window.location.href = `/learning/homework/${homework.id}`;
-                }}
-              />
-            ))
-          )}
+        <div className={styles.heroArt} aria-hidden="true">
+          <Image
+            src="/brand/dash-learning.png"
+            alt=""
+            width={120}
+            height={120}
+            className={styles.heroIcon}
+          />
         </div>
-      </section>
+      </motion.section>
 
-      <section>
-        <h2>Тести</h2>
-        <div className={styles.grid}>
-          {data.quizzes.map((quiz) => (
-            <Card key={quiz.id}>
-              <div className={styles.quizHead}>
-                <span aria-hidden="true">
-                  {SUBJECT_ICONS[quiz.subject as Subject] ?? '📘'}
-                </span>
-                <div>
-                  <h3>{quiz.title}</h3>
-                  <p>
-                    {SUBJECT_LABELS[quiz.subject as Subject] ?? 'Предмет'} · +
-                    {quiz.xpReward} XP
-                  </p>
-                </div>
+      <div className={styles.focusStrip} role="tablist" aria-label="Розділи навчання">
+        {tabs.map((item) => {
+          const count = focusCount[item.key];
+          const active = activeTab === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`${styles.focusChip} ${active ? styles.focusChipActive : ''}`}
+              onClick={() => setTab(item.key)}
+            >
+              <span>{item.label}</span>
+              {count > 0 ? <em>{count}</em> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={styles.stack}>
+        {activeTab === 'today' ? (
+          <SectionCard
+            tone="learning"
+            title="Сьогоднішні завдання"
+            iconSrc="/brand/dash-learning.png"
+          >
+            {buckets.today.length === 0 ? (
+              <p className={styles.emptyLine}>
+                Сьогодні все спокійно. Можна відпочити або глянути квести.
+              </p>
+            ) : (
+              <div className={styles.cards}>
+                {buckets.today.map((homework) => (
+                  <HomeworkCard
+                    key={homework.id}
+                    homework={homework}
+                    compact
+                    onAction={() => {
+                      window.location.href = `/learning/homework/${homework.id}`;
+                    }}
+                  />
+                ))}
               </div>
-              <Link href={`/learning/quiz/${quiz.id}`}>
-                <Button fullWidth>Почати</Button>
-              </Link>
-            </Card>
-          ))}
-        </div>
-      </section>
+            )}
+          </SectionCard>
+        ) : null}
 
-      <section>
-        <h2>Квести</h2>
-        <div className={styles.stack}>
-          {data.quests.map((quest) => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              onContinue={() => questMutation.mutate(quest.id)}
-            />
-          ))}
-        </div>
-      </section>
+        {activeTab === 'waiting' ? (
+          <SectionCard
+            tone="tasks"
+            title="Ще чекає на тебе"
+            iconSrc="/brand/dash-tasks.png"
+          >
+            {buckets.waiting.length === 0 ? (
+              <p className={styles.emptyLine}>
+                Немає завдань, які чекають відповіді.
+              </p>
+            ) : (
+              <div className={styles.cards}>
+                {buckets.waiting.map((homework) => (
+                  <HomeworkCard
+                    key={homework.id}
+                    homework={homework}
+                    compact
+                    onAction={() => {
+                      window.location.href = `/learning/homework/${homework.id}`;
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        ) : null}
 
-      <section>
-        <h2>Що я пропустив?</h2>
-        <div className={styles.grid}>
-          {data.materials
-            .filter((item) => item.missedLesson)
-            .map((material) => (
-              <Card key={material.id}>
-                <h3>{material.title}</h3>
-                <p>{material.summary}</p>
-                <ol className={styles.missedList}>
-                  <li>Що проходили</li>
-                  <li>Коротке пояснення</li>
-                  <li>Матеріали</li>
-                  <li>Міні-тест</li>
-                  <li>Домашнє завдання</li>
-                </ol>
-                <p className={styles.placeholder}>
-                  Відеоурок зʼявиться пізніше. Поки можна повторити коротко.
-                </p>
-              </Card>
-            ))}
-        </div>
-      </section>
+        {activeTab === 'later' ? (
+          <SectionCard
+            tone="events"
+            title="На потім"
+            iconSrc="/brand/dash-events.png"
+          >
+            {buckets.later.length === 0 ? (
+              <p className={styles.emptyLine}>
+                Попереду тихо — нових завдань ще немає.
+              </p>
+            ) : (
+              <div className={styles.cards}>
+                {buckets.later.map((homework) => (
+                  <HomeworkCard
+                    key={homework.id}
+                    homework={homework}
+                    compact
+                    onAction={() => {
+                      window.location.href = `/learning/homework/${homework.id}`;
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        ) : null}
+
+        {activeTab === 'tests' ? (
+          <SectionCard
+            tone="learning"
+            title="Тести"
+            iconSrc="/brand/dash-learning.png"
+          >
+            {data.quizzes.length === 0 ? (
+              <p className={styles.emptyLine}>Тестів поки немає.</p>
+            ) : (
+              <div className={styles.quizList}>
+                {data.quizzes.map((quiz) => (
+                  <article key={quiz.id} className={styles.quizRow}>
+                    <div className={styles.quizCopy}>
+                      <span className={styles.quizEmoji} aria-hidden="true">
+                        {SUBJECT_ICONS[quiz.subject as Subject] ?? '📘'}
+                      </span>
+                      <div>
+                        <strong>{quiz.title}</strong>
+                        <p>
+                          {SUBJECT_LABELS[quiz.subject as Subject] ?? 'Предмет'} · +
+                          {quiz.xpReward} XP
+                        </p>
+                      </div>
+                    </div>
+                    <Link href={`/learning/quiz/${quiz.id}`}>
+                      <Button size="md">Почати</Button>
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        ) : null}
+
+        {activeTab === 'missed' ? (
+          <SectionCard
+            tone="class"
+            title="Що я пропустив?"
+            iconSrc="/brand/dash-class.png"
+          >
+            {missed.length === 0 ? (
+              <p className={styles.emptyLine}>Ти нічого не пропустив — супер!</p>
+            ) : (
+              <div className={styles.missedList}>
+                {missed.map((material) => (
+                  <article key={material.id} className={styles.missedItem}>
+                    <h3>{material.title}</h3>
+                    <p>{material.summary}</p>
+                    <p className={styles.placeholder}>
+                      Коротке повторення зʼявиться пізніше. Поки можна глянути
+                      завдання дня.
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        ) : null}
+
+        <aside className={styles.sideNote}>
+          <div>
+            <strong>Квести</strong>
+            <p>Пригоди класу — окремо, у своєму розділі.</p>
+          </div>
+          <Link href="/quests" className={styles.sideLink}>
+            Відкрити квести
+          </Link>
+        </aside>
+      </div>
     </div>
   );
 }

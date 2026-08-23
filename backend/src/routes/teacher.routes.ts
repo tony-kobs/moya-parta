@@ -9,6 +9,7 @@ router.use(requireRoles('teacher'));
 
 router.get('/dashboard', teacherController.getDashboard);
 router.post('/homework', teacherController.createHomework);
+router.get('/homework/:id/analytics', teacherController.getHomeworkAnalytics);
 router.delete('/homework/:id', teacherController.deleteHomework);
 router.post('/submissions/:id/review', teacherController.reviewSubmission);
 router.get('/quiz-templates', teacherController.getQuizTemplates);
