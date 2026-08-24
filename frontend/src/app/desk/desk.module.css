@@ -21,17 +21,29 @@
 
 .heroArtImage {
   object-fit: cover;
-  object-position: center 45%;
+  /* Mobile crop: keep the desk-scene subject centered in the narrow frame. */
+  object-position: center 40%;
+}
+
+.heroFallback {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-strong) 0%,
+    var(--color-primary) 100%
+  );
 }
 
 .heroArtShade {
   position: absolute;
   inset: 0;
+  /* Localized scrim: dark only where the title/XP text sits (left side),
+     fading out quickly so most of the artwork stays untouched. */
   background: linear-gradient(
-    105deg,
-    rgba(18, 42, 40, 0.82) 0%,
-    rgba(18, 42, 40, 0.5) 50%,
-    rgba(18, 42, 40, 0.28) 100%
+    100deg,
+    rgba(10, 22, 21, 0.88) 0%,
+    rgba(10, 22, 21, 0.72) 30%,
+    rgba(10, 22, 21, 0.28) 55%,
+    rgba(10, 22, 21, 0) 75%
   );
 }
 
@@ -52,9 +64,10 @@
 
 .hello {
   margin: 0 0 2px;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.88);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 
 .className {
@@ -62,6 +75,8 @@
   font-size: clamp(1.2rem, 4vw, 1.55rem);
   letter-spacing: -0.03em;
   line-height: 1.15;
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .xpWrap {
@@ -189,6 +204,11 @@
   .hero {
     min-height: 128px;
   }
+
+  /* Large phones: banner is wider, so the subject can sit a bit lower. */
+  .heroArtImage {
+    object-position: center 45%;
+  }
 }
 
 @media (min-width: 768px) {
@@ -214,6 +234,11 @@
   .secondary {
     gap: 12px;
   }
+
+  /* Tablet: wider frame reveals more of the scene, center it. */
+  .heroArtImage {
+    object-position: center 50%;
+  }
 }
 
 @media (min-width: 1028px) {
@@ -224,11 +249,21 @@
   .layout {
     gap: 12px;
   }
+
+  /* Laptop: sidebar layout narrows the hero relative to its height. */
+  .heroArtImage {
+    object-position: center 40%;
+  }
 }
 
 @media (min-width: 1440px) {
   .heroBody {
     padding: 16px 20px;
+  }
+
+  /* Wide desktop: very short, ultra-wide banner — keep the subject high. */
+  .heroArtImage {
+    object-position: center 30%;
   }
 }
 

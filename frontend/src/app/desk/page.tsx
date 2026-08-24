@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +16,11 @@ import { HomeworkCard } from '@/components/learning/HomeworkCard';
 import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { studentApi } from '@/services/api';
 import { formatEventRange } from '@/lib/format';
+import {
+  computeXpProgress,
+  describeHowToEarnXp,
+  describeXpProgress,
+} from '@/lib/xpProgress';
 import styles from './desk.module.css';
 
 export default function DeskPage() {
@@ -31,6 +37,8 @@ function DeskContent() {
     queryFn: studentApi.getDesk,
   });
 
+  const [bannerImageFailed, setBannerImageFailed] = useState(false);
+
   if (isLoading) {
     return <LoadingState label="Готуємо твою парту..." />;
   }
@@ -44,23 +52,29 @@ function DeskContent() {
     );
   }
 
+  const xpProgress = computeXpProgress(data.profile.xp, data.profile.xpToNextLevel);
+  const showBannerImage = !bannerImageFailed;
+
   return (
     <div className={styles.page}>
       <motion.section
-        className={styles.hero}
+        className={`${styles.hero} ${!showBannerImage ? styles.heroFallback : ''}`}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className={styles.heroArt} aria-hidden="true">
-          <Image
-            src="/brand/desk-scene.png"
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 60vw"
-            className={styles.heroArtImage}
-            priority
-          />
+          {showBannerImage ? (
+            <Image
+              src="/brand/desk-scene.png"
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 60vw"
+              className={styles.heroArtImage}
+              priority
+              onError={() => setBannerImageFailed(true)}
+            />
+          ) : null}
           <div className={styles.heroArtShade} />
         </div>
 
@@ -77,8 +91,14 @@ function DeskContent() {
             <div className={styles.xpWrap}>
               <XPBar
                 level={data.profile.level}
-                xp={data.profile.xp}
-                xpToNextLevel={data.profile.xpToNextLevel}
+                xp={xpProgress.xp}
+                xpToNextLevel={xpProgress.xpToNextLevel}
+                xpRemaining={xpProgress.xpRemaining}
+                isLevelComplete={xpProgress.isLevelComplete}
+                hasValidData={xpProgress.hasValidData}
+                progressDescription={describeXpProgress(xpProgress)}
+                howToEarnXp={describeHowToEarnXp(data.dailyGoal)}
+                nextReward={null}
                 inverted
               />
             </div>
