@@ -1,15 +1,48 @@
-/* Soft full-page background for the class-code entry screen only.
+/* Soft full-page background for both /join steps (class-code entry and
+   student registration) only. Self-contained: this file owns the whole
+   `.page` layout (not merged with login.module.css's `.page`), so there is
+   no cross-file cascade-order dependency for which rules "win" — the only
+   ruleset in play is this one.
    Background lives on a ::before layer (behind the card via a negative
    z-index inside an isolated stacking context) so `filter` can boost the
-   PNG's contrast/saturation without washing out the card itself. */
+   PNG's contrast/saturation without washing out the card itself.
+   The layer is `position: fixed` (viewport-locked) rather than tied to
+   `.page`'s own box: `.page` only guarantees `min-height: 100vh`, so on
+   short content its rendered height can settle to exactly the viewport
+   while any host-page defaults show through at the very edge (the
+   reported gray strip). A fixed, inset:0 layer always spans the full
+   viewport regardless of `.page`'s content-driven height, so there is no
+   seam to chase per breakpoint, and it stays put (no reveal) while the
+   page scrolls on short/mobile viewports. */
 .page {
   position: relative;
   isolation: isolate;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--page-pad-x);
+}
+
+/* Card surface for both /join steps. Doubled selector (.card.card) to
+   guarantee this wins over login.module.css's `.card` regardless of CSS
+   Modules concatenation order, without relying on cross-file cascade
+   order or `!important` — see the note above for why that ordering can't
+   be trusted. Only background/border/shadow are overridden; radius,
+   padding, width, and gap stay inherited from login.module.css's
+   `.card`. */
+.card.card {
+  background: #f8f3ea;
+  border: 1px solid rgba(30, 43, 42, 0.09);
+  box-shadow:
+    0 1px 2px rgba(30, 43, 42, 0.07),
+    0 20px 44px rgba(30, 43, 42, 0.15);
 }
 
 .page::before {
   content: '';
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
