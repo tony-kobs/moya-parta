@@ -13,8 +13,8 @@ export default function JoinEntryPage() {
   const [code, setCode] = useState('');
 
   return (
-    <main className={`${styles.page} ${pageStyles.page}`}>
-      <div className={styles.card}>
+    <main className={pageStyles.page}>
+      <div className={`${styles.card} ${pageStyles.card}`}>
         <BrandMark href="/" size="lg" />
         <h1>Код класу</h1>
         <p className={styles.lead}>
