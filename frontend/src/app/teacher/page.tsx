@@ -20,6 +20,12 @@ import styles from './teacher.module.css';
 
 const classSchema = z.object({
   name: z.string().min(1, 'Напиши назву класу'),
+  grade: z.coerce
+    .number()
+    .int()
+    .refine((value) => value >= 1 && value <= 4, {
+      message: 'Обери клас від 1 до 4',
+    }),
 });
 
 type ClassForm = z.infer<typeof classSchema>;
@@ -48,11 +54,15 @@ function TeacherDashboard() {
     formState: { errors },
   } = useForm<ClassForm>({
     resolver: zodResolver(classSchema),
-    defaultValues: { name: '3-Б' },
+    defaultValues: { name: '3-Б', grade: 3 },
   });
 
   const createClassMutation = useMutation({
-    mutationFn: (values: ClassForm) => teacherApi.createClass(values),
+    mutationFn: (values: ClassForm) =>
+      teacherApi.createClass({
+        name: values.name,
+        grade: values.grade as 1 | 2 | 3 | 4,
+      }),
     onSuccess: async (classRoom) => {
       await refreshUser();
       void queryClient.invalidateQueries({ queryKey: ['teacher-dashboard'] });
@@ -94,6 +104,16 @@ function TeacherDashboard() {
             <input placeholder="3-Б" {...register('name')} />
           </label>
           {errors.name ? <em>{errors.name.message}</em> : null}
+          <label>
+            Клас
+            <select {...register('grade')}>
+              <option value={1}>1 клас</option>
+              <option value={2}>2 клас</option>
+              <option value={3}>3 клас</option>
+              <option value={4}>4 клас</option>
+            </select>
+          </label>
+          {errors.grade ? <em>{errors.grade.message}</em> : null}
           <Button type="submit" disabled={createClassMutation.isPending} fullWidth>
             Створити клас
           </Button>

@@ -1,5 +1,8 @@
 export type UserRole = 'student' | 'teacher';
 
+/** Grade 1–4 — used to pick the right curriculum-aligned quest question bank. */
+export type Grade = 1 | 2 | 3 | 4;
+
 export type PostStatus = 'pending' | 'published' | 'rejected' | 'hidden';
 
 export type HomeworkStatus =
@@ -40,6 +43,7 @@ export interface ClassRoom {
   id: string;
   schoolId: string;
   name: string;
+  grade: Grade;
   teacherId: string;
   inviteCode: string;
   studentIds: string[];
@@ -134,6 +138,13 @@ export interface QuizAttempt {
   completedAt: string;
 }
 
+export interface QuestQuestion {
+  id: string;
+  text: string;
+  options: string[];
+  correctIndex: number;
+}
+
 export interface Quest {
   id: string;
   classId: string;
@@ -142,6 +153,15 @@ export interface Quest {
   illustration: string;
   xpReward: number;
   totalSteps: number;
+  /** Present for interactive step-by-step quests with fixed, per-quest questions. */
+  questions?: QuestQuestion[];
+  /**
+   * When set to 'grade-math', questions are not stored on the quest itself —
+   * they are resolved server-side from the requesting student's class grade
+   * (see `mathExpeditionQuestionsByGrade`), so a student can never reach
+   * another grade's question bank by changing an id or request payload.
+   */
+  questionSource?: 'grade-math';
 }
 
 export interface QuestProgress {

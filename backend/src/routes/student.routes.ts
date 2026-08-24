@@ -42,10 +42,16 @@ router.post(
   requireRoles('student'),
   learningController.submitQuiz,
 );
+router.get('/quests/:id', requireRoles('student'), learningController.getQuest);
 router.post(
   '/quests/:id/advance',
   requireRoles('student'),
   learningController.advanceQuest,
+);
+router.post(
+  '/quests/:id/answer',
+  requireRoles('student'),
+  learningController.answerQuest,
 );
 router.get(
   '/achievements',

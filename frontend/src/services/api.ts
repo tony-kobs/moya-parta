@@ -5,6 +5,7 @@ import type {
   BackpackItem,
   ClassEvent,
   DeskData,
+  Grade,
   Homework,
   HomeworkAnalytics,
   NotificationItem,
@@ -137,6 +138,18 @@ export const studentApi = {
       xpEarned: number;
       progress: { currentStep: number; completed: boolean };
     }>(`/student/quests/${id}/advance`, { method: 'POST' }),
+  getQuest: (id: string) => apiRequest<Quest>(`/student/quests/${id}`),
+  answerQuest: (id: string, stepIndex: number, optionIndex: number) =>
+    apiRequest<{
+      correct: boolean;
+      message: string;
+      xpEarned: number;
+      progress: { currentStep: number; completed: boolean };
+      profile: StudentProfile | null;
+    }>(`/student/quests/${id}/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ stepIndex, optionIndex }),
+    }),
   getAchievements: () => apiRequest<Achievement[]>('/student/achievements'),
   getEvents: () => apiRequest<ClassEvent[]>('/student/events'),
   joinEvent: (id: string) =>
@@ -268,10 +281,11 @@ export const teacherApi = {
     ),
   deleteEvent: (id: string) =>
     apiRequest<ClassEvent>(`/teacher/events/${id}`, { method: 'DELETE' }),
-  createClass: (payload: { name: string }) =>
+  createClass: (payload: { name: string; grade: Grade }) =>
     apiRequest<{
       id: string;
       name: string;
+      grade: Grade;
       inviteCode: string;
     }>('/teacher/classes', {
       method: 'POST',
