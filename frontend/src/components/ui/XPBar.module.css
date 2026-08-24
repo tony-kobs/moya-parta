@@ -28,3 +28,49 @@
 .inverted .xp {
   color: rgba(255, 255, 255, 0.78);
 }
+
+.status {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.inverted .status {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.reward {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.inverted .reward {
+  color: #ffffff;
+}
+
+.disclosure {
+  font-size: 0.8rem;
+}
+
+.disclosure summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.inverted .disclosure summary {
+  color: #ffffff;
+}
+
+.disclosure p {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.inverted .disclosure p {
+  color: rgba(255, 255, 255, 0.78);
+}
