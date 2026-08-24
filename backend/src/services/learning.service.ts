@@ -1,4 +1,5 @@
 import { db } from '../data/seed';
+import { mathExpeditionQuestionsByGrade } from '../data/mathExpeditionQuestions';
 import { createId } from '../helpers/response';
 import { enrichEvent, getEventLifecycle } from '../helpers/events';
 import {
@@ -10,7 +11,37 @@ import {
   isHomeworkStarted,
 } from '../helpers/homework';
 import { addXp } from './student.service';
-import type { AuthUser, Homework, Quiz } from '../types';
+import type { AuthUser, Grade, Homework, Quest, QuestQuestion, Quiz } from '../types';
+
+/**
+ * Resolves the question bank a quest should use. For `grade-math` quests the
+ * bank is derived from the quest's own class grade — never from a client id
+ * or payload — so a student can only ever reach their own class's grade.
+ */
+const resolveQuestQuestions = (quest: Quest): QuestQuestion[] | undefined => {
+  if (quest.questionSource === 'grade-math') {
+    const classRoom = db.classes.find((item) => item.id === quest.classId);
+    return classRoom ? mathExpeditionQuestionsByGrade[classRoom.grade] : undefined;
+  }
+
+  return quest.questions;
+};
+
+const resolveQuestGrade = (quest: Quest): Grade | undefined => {
+  if (quest.questionSource !== 'grade-math') {
+    return undefined;
+  }
+
+  return db.classes.find((item) => item.id === quest.classId)?.grade;
+};
+
+const sanitizeQuest = (quest: Quest) => ({
+  ...quest,
+  questions: resolveQuestQuestions(quest)?.map(
+    ({ correctIndex: _correctIndex, ...rest }) => rest,
+  ),
+  grade: resolveQuestGrade(quest),
+});
 
 export const getLearningForStudent = (studentId: string, classId: string) => {
   const homework = db.homeworks
@@ -70,7 +101,7 @@ export const getLearningForStudent = (studentId: string, classId: string) => {
         (item) => item.questId === quest.id && item.studentId === studentId,
       );
       return {
-        ...quest,
+        ...sanitizeQuest(quest),
         currentStep: progress?.currentStep ?? 0,
         completed: progress?.completed ?? false,
       };
@@ -216,21 +247,28 @@ export const submitQuizAttempt = (
   };
 };
 
-export const advanceQuest = (questId: string, studentId: string) => {
-  const quest = db.quests.find((item) => item.id === questId);
+export const advanceQuest = (questId: string, student: AuthUser) => {
+  const quest = db.quests.find(
+    (item) => item.id === questId && item.classId === student.classId,
+  );
 
   if (!quest) {
     return null;
   }
 
+  const interactiveQuestions = resolveQuestQuestions(quest);
+  if (interactiveQuestions && interactiveQuestions.length > 0) {
+    return { error: 'INTERACTIVE_ONLY' as const };
+  }
+
   let progress = db.questProgress.find(
-    (item) => item.questId === questId && item.studentId === studentId,
+    (item) => item.questId === questId && item.studentId === student.id,
   );
 
   if (!progress) {
     progress = {
       questId,
-      studentId,
+      studentId: student.id,
       currentStep: 0,
       completed: false,
     };
@@ -238,17 +276,16 @@ export const advanceQuest = (questId: string, studentId: string) => {
   }
 
   if (progress.completed) {
-    return { quest, progress, xpEarned: 0, profile: null };
+    return { quest: sanitizeQuest(quest), progress, xpEarned: 0, profile: null };
   }
 
-  progress.currentStep += 1;
+  progress.currentStep = Math.min(progress.currentStep + 1, quest.totalSteps);
 
   if (progress.currentStep >= quest.totalSteps) {
     progress.completed = true;
-    progress.currentStep = quest.totalSteps;
-    const profile = addXp(studentId, quest.xpReward, `Квест: ${quest.title}`);
+    const profile = addXp(student.id, quest.xpReward, `Квест: ${quest.title}`);
     return {
-      quest,
+      quest: sanitizeQuest(quest),
       progress,
       xpEarned: quest.xpReward,
       profile,
@@ -257,11 +294,120 @@ export const advanceQuest = (questId: string, studentId: string) => {
   }
 
   return {
-    quest,
+    quest: sanitizeQuest(quest),
     progress,
     xpEarned: 0,
     profile: null,
     message: 'Ще один маленький крок!',
+  };
+};
+
+export const getQuestForStudent = (questId: string, student: AuthUser) => {
+  const quest = db.quests.find(
+    (item) => item.id === questId && item.classId === student.classId,
+  );
+
+  if (!quest) {
+    return null;
+  }
+
+  const progress = db.questProgress.find(
+    (item) => item.questId === questId && item.studentId === student.id,
+  );
+
+  return {
+    ...sanitizeQuest(quest),
+    currentStep: progress?.currentStep ?? 0,
+    completed: progress?.completed ?? false,
+  };
+};
+
+export const answerQuestStep = (
+  questId: string,
+  student: AuthUser,
+  stepIndex: number,
+  optionIndex: number,
+) => {
+  const quest = db.quests.find(
+    (item) => item.id === questId && item.classId === student.classId,
+  );
+
+  if (!quest) {
+    return null;
+  }
+
+  const questions = resolveQuestQuestions(quest);
+
+  if (!questions || questions.length === 0) {
+    return { error: 'NOT_INTERACTIVE' as const };
+  }
+
+  let progress = db.questProgress.find(
+    (item) => item.questId === questId && item.studentId === student.id,
+  );
+
+  if (!progress) {
+    progress = {
+      questId,
+      studentId: student.id,
+      currentStep: 0,
+      completed: false,
+    };
+    db.questProgress.push(progress);
+  }
+
+  if (progress.completed) {
+    return {
+      correct: true,
+      progress,
+      xpEarned: 0,
+      profile: null,
+      message: 'Квест уже завершено!',
+    };
+  }
+
+  if (stepIndex !== progress.currentStep) {
+    return { error: 'INVALID_STEP' as const };
+  }
+
+  const question = questions[stepIndex];
+
+  if (!question) {
+    return { error: 'INVALID_STEP' as const };
+  }
+
+  const correct = optionIndex === question.correctIndex;
+
+  if (!correct) {
+    return {
+      correct: false,
+      progress,
+      xpEarned: 0,
+      profile: null,
+      message: 'Спробуй ще раз!',
+    };
+  }
+
+  progress.currentStep = Math.min(progress.currentStep + 1, quest.totalSteps);
+
+  if (progress.currentStep >= quest.totalSteps) {
+    progress.completed = true;
+    const profile = addXp(student.id, quest.xpReward, `Квест: ${quest.title}`);
+    return {
+      correct: true,
+      progress,
+      xpEarned: quest.xpReward,
+      profile,
+      message: `Квест завершено! +${quest.xpReward} XP`,
+    };
+  }
+
+  return {
+    correct: true,
+    progress,
+    xpEarned: 0,
+    profile: null,
+    message: 'Правильно! Ще один крок вперед!',
   };
 };
 

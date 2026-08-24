@@ -442,6 +442,12 @@ export const publishEventReview = (req: AuthRequest, res: Response): void => {
 
 const classSchema = z.object({
   name: z.string().min(1, 'Напиши назву класу'),
+  grade: z
+    .number({ invalid_type_error: 'Обери клас від 1 до 4' })
+    .int()
+    .refine((value) => value >= 1 && value <= 4, {
+      message: 'Клас має бути від 1 до 4',
+    }),
 });
 
 export const createClass = (req: AuthRequest, res: Response): void => {
@@ -458,7 +464,10 @@ export const createClass = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const classRoom = teacherService.createClassForTeacher(req.user, parsed.data);
+    const classRoom = teacherService.createClassForTeacher(req.user, {
+      name: parsed.data.name,
+      grade: parsed.data.grade as 1 | 2 | 3 | 4,
+    });
     sendSuccess(res, classRoom, HTTP_STATUS.CREATED);
   } catch (error) {
     if (error instanceof Error && error.message === 'CLASS_EXISTS') {

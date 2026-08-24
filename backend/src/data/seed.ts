@@ -114,6 +114,7 @@ export const classes: ClassRoom[] = [
     id: 'class-3b',
     schoolId: 'school-12',
     name: '3-Б',
+    grade: 3,
     teacherId: 'user-teacher',
     inviteCode: '3B-DEMO',
     studentIds: [
@@ -453,6 +454,7 @@ export const quests: Quest[] = [
     illustration: '🧭',
     xpReward: 50,
     totalSteps: 5,
+    questionSource: 'grade-math',
   },
   {
     id: 'quest-2',

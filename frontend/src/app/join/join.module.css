@@ -1,0 +1,65 @@
+/* Soft full-page background for the class-code entry screen only.
+   Background lives on a ::before layer (behind the card via a negative
+   z-index inside an isolated stacking context) so `filter` can boost the
+   PNG's contrast/saturation without washing out the card itself. */
+.page {
+  position: relative;
+  isolation: isolate;
+}
+
+.page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  filter: saturate(1.25) contrast(1.04);
+  background:
+    radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 8% 10% / 26px 26px no-repeat,
+    radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 91% 14% / 20px 20px no-repeat,
+    radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 90% 80% / 30px 30px no-repeat,
+    radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 9% 84% / 24px 24px no-repeat,
+    radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 50% 5% / 18px 18px no-repeat,
+    radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 50% 96% / 22px 22px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+    url('/standalone_loading_background.png') left center / cover no-repeat;
+}
+
+/* The PNG has a ~2.4% fully-transparent margin baked into its right edge.
+   On viewports at least as wide (relatively) as the image itself — i.e.
+   every landscape desktop/tablet size, where `cover` has zero horizontal
+   slack to crop — that margin is otherwise stretched into a visible gray
+   strip. Oversizing the image slightly and anchoring it left pushes that
+   margin past the box's right edge, where it's clipped by the background
+   box itself; height stays fully covered because oversizing beyond a
+   width that already satisfies `cover` only adds extra vertical crop. */
+@media (min-aspect-ratio: 1640 / 2440) {
+  .page::before {
+    background:
+      radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 8% 10% / 26px 26px no-repeat,
+      radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 91% 14% / 20px 20px no-repeat,
+      radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 90% 80% / 30px 30px no-repeat,
+      radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 9% 84% / 24px 24px no-repeat,
+      radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 50% 5% / 18px 18px no-repeat,
+      radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 50% 96% / 22px 22px no-repeat,
+      linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+      url('/standalone_loading_background.png') left center / 106% auto no-repeat;
+  }
+}
+
+/* Narrow viewports: the card spans nearly full width, so keep the accent
+   spots confined to the top/bottom margins (never beside the card) and
+   shrink them so they read as accents, not clutter. */
+@media (max-width: 640px) {
+  .page::before {
+    background:
+      radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 18% 5% / 16px 16px no-repeat,
+      radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 78% 4% / 14px 14px no-repeat,
+      radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 50% 7% / 12px 12px no-repeat,
+      radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 22% 95% / 14px 14px no-repeat,
+      radial-gradient(circle, rgba(74, 155, 235, 0.72) 0%, rgba(74, 155, 235, 0) 72%) 80% 96% / 16px 16px no-repeat,
+      radial-gradient(circle, rgba(247, 176, 62, 0.72) 0%, rgba(247, 176, 62, 0) 72%) 50% 94% / 12px 12px no-repeat,
+      linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+      url('/standalone_loading_background.png') left center / cover no-repeat;
+  }
+}

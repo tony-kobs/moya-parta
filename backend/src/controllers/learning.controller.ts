@@ -113,13 +113,84 @@ export const advanceQuest = (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  const result = learningService.advanceQuest(
+  const result = learningService.advanceQuest(getParam(req.params.id), req.user);
+
+  if (!result) {
+    sendError(res, 'Квест не знайдено', HTTP_STATUS.NOT_FOUND);
+    return;
+  }
+
+  if ('error' in result && result.error === 'INTERACTIVE_ONLY') {
+    sendError(
+      res,
+      'Цей квест проходиться по кроках з відповідями.',
+      HTTP_STATUS.BAD_REQUEST,
+    );
+    return;
+  }
+
+  sendSuccess(res, result);
+};
+
+export const getQuest = (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
+    return;
+  }
+
+  const quest = learningService.getQuestForStudent(
     getParam(req.params.id),
-    req.user.id,
+    req.user,
+  );
+
+  if (!quest) {
+    sendError(res, 'Квест не знайдено', HTTP_STATUS.NOT_FOUND);
+    return;
+  }
+
+  sendSuccess(res, quest);
+};
+
+const answerQuestSchema = z.object({
+  stepIndex: z.number().int().min(0),
+  optionIndex: z.number().int().min(0),
+});
+
+export const answerQuest = (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
+    return;
+  }
+
+  const parsed = answerQuestSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    sendError(res, 'Обери відповідь', HTTP_STATUS.BAD_REQUEST);
+    return;
+  }
+
+  const result = learningService.answerQuestStep(
+    getParam(req.params.id),
+    req.user,
+    parsed.data.stepIndex,
+    parsed.data.optionIndex,
   );
 
   if (!result) {
     sendError(res, 'Квест не знайдено', HTTP_STATUS.NOT_FOUND);
+    return;
+  }
+
+  if ('error' in result) {
+    if (result.error === 'NOT_INTERACTIVE') {
+      sendError(
+        res,
+        'Цей квест не має покрокових питань.',
+        HTTP_STATUS.BAD_REQUEST,
+      );
+      return;
+    }
+    sendError(res, 'Цей крок уже пройдено або недоступний.', HTTP_STATUS.BAD_REQUEST);
     return;
   }
 
