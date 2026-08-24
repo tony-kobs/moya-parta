@@ -12,10 +12,12 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PostCard } from '@/components/posts/PostCard';
 import { ComposePostCard } from '@/components/posts/ComposePostCard';
+import { DailyContextCard } from '@/components/class/DailyContextCard';
 import { studentApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import { formatEventRange } from '@/lib/format';
+import { selectDailyContextEntries } from '@/lib/dailyContext';
 import type { ClassEvent, Quest } from '@/types';
 import styles from './class.module.css';
 
@@ -35,6 +37,11 @@ function ClassContent() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['class'],
     queryFn: studentApi.getClass,
+  });
+
+  const { data: learningData, isLoading: isLearningLoading } = useQuery({
+    queryKey: ['learning'],
+    queryFn: studentApi.getLearning,
   });
 
   const reactMutation = useMutation({
@@ -67,6 +74,18 @@ function ClassContent() {
   const activeQuests = data.quests.filter((quest) => !quest.completed);
   const activeEvents = data.events.filter(
     (event) => event.status === 'upcoming' || event.status === 'live',
+  );
+
+  const dailyContextEntries = selectDailyContextEntries({
+    homework: learningData?.homework,
+    events: data.events,
+    quests: data.quests,
+  });
+
+  const joinedEventIds = new Set(
+    data.events
+      .filter((event) => user && event.participantIds.includes(user.id))
+      .map((event) => event.id),
   );
 
   return (
@@ -107,6 +126,16 @@ function ClassContent() {
           ) : null}
         </div>
       </Card>
+
+      <div className={styles.dailyContext}>
+        <DailyContextCard
+          isLoading={isLearningLoading}
+          entries={dailyContextEntries}
+          joinedEventIds={joinedEventIds}
+          joinBusy={joinMutation.isPending}
+          onJoinEvent={(id) => joinMutation.mutate(id)}
+        />
+      </div>
 
       <div className={styles.stack}>
         <ComposePostCard />

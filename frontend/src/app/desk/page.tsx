@@ -15,6 +15,12 @@ import { HomeworkCard } from '@/components/learning/HomeworkCard';
 import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { studentApi } from '@/services/api';
 import { formatEventRange } from '@/lib/format';
+import {
+  computeXpProgress,
+  describeHowToEarnXp,
+  describeXpProgress,
+  pickNextReward,
+} from '@/lib/xpProgress';
 import styles from './desk.module.css';
 
 export default function DeskPage() {
@@ -31,6 +37,11 @@ function DeskContent() {
     queryFn: studentApi.getDesk,
   });
 
+  const { data: backpack } = useQuery({
+    queryKey: ['backpack'],
+    queryFn: studentApi.getBackpack,
+  });
+
   if (isLoading) {
     return <LoadingState label="Готуємо твою парту..." />;
   }
@@ -43,6 +54,9 @@ function DeskContent() {
       />
     );
   }
+
+  const xpProgress = computeXpProgress(data.profile.xp, data.profile.xpToNextLevel);
+  const nextReward = pickNextReward(backpack);
 
   return (
     <div className={styles.page}>
@@ -77,8 +91,18 @@ function DeskContent() {
             <div className={styles.xpWrap}>
               <XPBar
                 level={data.profile.level}
-                xp={data.profile.xp}
-                xpToNextLevel={data.profile.xpToNextLevel}
+                xp={xpProgress.xp}
+                xpToNextLevel={xpProgress.xpToNextLevel}
+                xpRemaining={xpProgress.xpRemaining}
+                isLevelComplete={xpProgress.isLevelComplete}
+                hasValidData={xpProgress.hasValidData}
+                progressDescription={describeXpProgress(xpProgress)}
+                howToEarnXp={describeHowToEarnXp(data.dailyGoal)}
+                nextReward={
+                  nextReward
+                    ? { icon: nextReward.icon, title: nextReward.title }
+                    : null
+                }
                 inverted
               />
             </div>
