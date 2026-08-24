@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { BrandMark } from '@/components/brand/BrandMark';
 import styles from '../login/login.module.css';
+import pageStyles from './join.module.css';
 
 export default function JoinEntryPage() {
   const router = useRouter();
   const [code, setCode] = useState('');
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${pageStyles.page}`}>
       <div className={styles.card}>
         <BrandMark href="/" size="lg" />
         <h1>Код класу</h1>
