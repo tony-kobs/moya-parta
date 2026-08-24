@@ -16,6 +16,10 @@
   margin-top: 40px;
 }
 
+.dailyContext {
+  margin-top: 24px;
+}
+
 .overview {
   display: grid;
   gap: 22px;
