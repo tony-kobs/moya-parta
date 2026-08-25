@@ -5,22 +5,22 @@ import { sendError, sendSuccess } from '../helpers/response';
 import { AuthRequest } from '../middlewares/auth';
 import * as notificationsService from '../services/notifications.service';
 
-export const getNotifications = (req: AuthRequest, res: Response): void => {
+export const getNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, notificationsService.getNotifications(req.user.id));
+  sendSuccess(res, await notificationsService.getNotifications(req.user.id));
 };
 
-export const markRead = (req: AuthRequest, res: Response): void => {
+export const markRead = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const notification = notificationsService.markNotificationRead(
+  const notification = await notificationsService.markNotificationRead(
     getParam(req.params.id),
     req.user.id,
   );
@@ -33,11 +33,11 @@ export const markRead = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, notification);
 };
 
-export const markAllRead = (req: AuthRequest, res: Response): void => {
+export const markAllRead = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, notificationsService.markAllRead(req.user.id));
+  sendSuccess(res, await notificationsService.markAllRead(req.user.id));
 };

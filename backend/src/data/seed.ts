@@ -854,27 +854,3 @@ export const navSeen: Record<
     chat: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
   },
 };
-
-export const db = {
-  schools,
-  users,
-  classes,
-  studentProfiles,
-  posts,
-  homeworks,
-  homeworkSubmissions,
-  quizzes,
-  quizTemplates,
-  quizAttempts,
-  quests,
-  questProgress,
-  achievements,
-  studentAchievements,
-  events,
-  notifications,
-  xpTransactions,
-  backpackItems,
-  learningMaterials,
-  chatMessages,
-  navSeen,
-};

@@ -7,8 +7,14 @@
     "prestart": "npm run build",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "lint": "echo \"No lint configured yet\""
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "engines": {
     "node": ">=20"
@@ -22,7 +28,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^7.10.0",
+    "@prisma/client": "^6.19.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -41,7 +47,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.9",
-    "prisma": "^8.0.0-rc.10",
+    "prisma": "^6.19.3",
     "tsx": "^4.19.3"
   }
 }

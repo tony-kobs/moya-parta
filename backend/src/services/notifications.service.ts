@@ -1,33 +1,39 @@
-import { db } from '../data/seed';
+import { prisma } from '../lib/prisma';
+import { mapNotification } from '../lib/mappers';
 
-export const getNotifications = (userId: string) => {
-  return db.notifications
-    .filter((item) => item.userId === userId)
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+export const getNotifications = async (userId: string) => {
+  const rows = await prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows.map(mapNotification);
 };
 
-export const markNotificationRead = (notificationId: string, userId: string) => {
-  const notification = db.notifications.find(
-    (item) => item.id === notificationId && item.userId === userId,
-  );
+export const markNotificationRead = async (
+  notificationId: string,
+  userId: string,
+) => {
+  const existing = await prisma.notification.findFirst({
+    where: { id: notificationId, userId },
+  });
 
-  if (!notification) {
+  if (!existing) {
     return null;
   }
 
-  notification.read = true;
-  return notification;
+  const updated = await prisma.notification.update({
+    where: { id: notificationId },
+    data: { read: true },
+  });
+
+  return mapNotification(updated);
 };
 
-export const markAllRead = (userId: string) => {
-  db.notifications
-    .filter((item) => item.userId === userId)
-    .forEach((item) => {
-      item.read = true;
-    });
+export const markAllRead = async (userId: string) => {
+  await prisma.notification.updateMany({
+    where: { userId, read: false },
+    data: { read: true },
+  });
 
   return getNotifications(userId);
 };

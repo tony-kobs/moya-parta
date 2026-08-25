@@ -51,13 +51,13 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   }
 };
 
-export const me = (req: AuthRequest, res: Response): void => {
+export const me = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const user = authService.getCurrentUser(req.user.id);
+  const user = await authService.getCurrentUser(req.user.id);
 
   if (!user) {
     sendError(res, 'Користувача не знайдено', HTTP_STATUS.NOT_FOUND);
@@ -91,9 +91,9 @@ export const registerTeacher = async (
   }
 };
 
-export const getInvitePreview = (req: AuthRequest, res: Response): void => {
+export const getInvitePreview = async (req: AuthRequest, res: Response): Promise<void> => {
   const code = String(req.params.code ?? '');
-  const preview = authService.getInvitePreview(code);
+  const preview = await authService.getInvitePreview(code);
 
   if (!preview) {
     sendError(res, 'Такого коду класу немає', HTTP_STATUS.NOT_FOUND);

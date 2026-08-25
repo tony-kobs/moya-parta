@@ -1,4 +1,13 @@
-import { db } from '../data/seed';
+import type { Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import {
+  getClassStudentIds,
+  loadClassRoom,
+  mapClassEvent,
+  mapHomework,
+  mapHomeworkSubmission,
+  mapPost,
+} from '../lib/mappers';
 import { createId } from '../helpers/response';
 import { createInviteCode, normalizeInviteCode } from './auth.service';
 import { enrichEvent, eventEndsAt, eventStartsAt } from '../helpers/events';
@@ -8,10 +17,10 @@ import {
   isHomeworkActive,
   isHomeworkEnded,
 } from '../helpers/homework';
-import type { AuthUser, ClassEvent, ClassRoom, Grade, Quest } from '../types';
+import type { AuthUser, ClassRoom, Grade, Quest } from '../types';
 import * as postsService from './posts.service';
 
-export const getTeacherDashboard = (teacher: AuthUser) => {
+export const getTeacherDashboard = async (teacher: AuthUser) => {
   if (!teacher.classId) {
     return {
       greetingName: teacher.displayName,
@@ -33,31 +42,44 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
     };
   }
 
-  const classRoom = db.classes.find((item) => item.id === teacher.classId);
-  const pendingPosts = db.posts.filter(
-    (post) => post.classId === teacher.classId && post.status === 'pending',
-  ).length;
-
-  const checkingWorks = db.homeworkSubmissions.filter((sub) => {
-    const homework = db.homeworks.find((hw) => hw.id === sub.homeworkId);
-    return homework?.classId === teacher.classId && sub.status === 'checking';
+  const classRoom = await loadClassRoom(teacher.classId);
+  const pendingPosts = await prisma.post.count({
+    where: { classId: teacher.classId, status: 'pending' },
   });
 
-  const doneToday = db.homeworkSubmissions.filter((sub) => {
-    const homework = db.homeworks.find((hw) => hw.id === sub.homeworkId);
-    if (!homework || homework.classId !== teacher.classId || !sub.submittedAt) {
+  const homeworks = await prisma.homework.findMany({
+    where: { classId: teacher.classId },
+  });
+  const homeworkIds = homeworks.map((h) => h.id);
+  const submissions = homeworkIds.length
+    ? await prisma.homeworkSubmission.findMany({
+        where: { homeworkId: { in: homeworkIds } },
+      })
+    : [];
+
+  const checkingWorks = submissions
+    .map(mapHomeworkSubmission)
+    .filter((sub) => sub.status === 'checking');
+
+  const now = new Date();
+  const doneToday = submissions.filter((sub) => {
+    if (!sub.submittedAt) {
       return false;
     }
-    const submitted = new Date(sub.submittedAt);
-    const now = new Date();
-    return submitted.toDateString() === now.toDateString();
+    return sub.submittedAt.toDateString() === now.toDateString();
   }).length;
 
-  const activeQuest = db.quests.find((quest) => quest.classId === teacher.classId);
-  const nextEvent = db.events
+  const activeQuest = await prisma.quest.findFirst({
+    where: { classId: teacher.classId },
+  });
+
+  const events = await prisma.classEvent.findMany({
+    where: { classId: teacher.classId },
+  });
+  const nextEvent = events
+    .map(mapClassEvent)
     .filter(
       (event) =>
-        event.classId === teacher.classId &&
         new Date(eventEndsAt(event)).getTime() >= Date.now() &&
         !event.publishedPostId,
     )
@@ -67,19 +89,33 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
         new Date(eventStartsAt(b)).getTime(),
     )[0];
 
-  const recentPosts = db.posts
-    .filter(
-      (post) =>
-        post.classId === teacher.classId && post.status === 'published',
-    )
-    .slice(0, 4)
-    .map((post) => {
-      const author = db.users.find((user) => user.id === post.authorId);
-      return {
-        ...post,
-        authorName: author?.displayName ?? 'Учень',
-      };
-    });
+  const recentPostRows = await prisma.post.findMany({
+    where: { classId: teacher.classId, status: 'published' },
+    orderBy: { createdAt: 'desc' },
+    take: 4,
+  });
+  const authorIds = [...new Set(recentPostRows.map((p) => p.authorId))];
+  const authors = authorIds.length
+    ? await prisma.user.findMany({ where: { id: { in: authorIds } } })
+    : [];
+  const authorById = new Map(authors.map((a) => [a.id, a]));
+
+  const recentPosts = recentPostRows.map((row) => {
+    const post = mapPost(row);
+    const author = authorById.get(post.authorId);
+    return {
+      ...post,
+      authorName: author?.displayName ?? 'Учень',
+    };
+  });
+
+  const mappedHomeworks = homeworks.map(mapHomework);
+  const studentIds = checkingWorks.map((s) => s.studentId);
+  const students = studentIds.length
+    ? await prisma.user.findMany({ where: { id: { in: studentIds } } })
+    : [];
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  const hwById = new Map(mappedHomeworks.map((h) => [h.id, h]));
 
   return {
     greetingName: teacher.displayName,
@@ -94,20 +130,16 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
       nextEventEndsAt: nextEvent ? eventEndsAt(nextEvent) : null,
       pendingPosts,
     },
-    homeworks: db.homeworks
-      .filter((hw) => hw.classId === teacher.classId)
-      .map((hw) => ({
-        ...hw,
-        startsAt: homeworkStartsAt(hw),
-        endsAt: homeworkEndsAt(hw),
-        dueDate: homeworkEndsAt(hw),
-        active: isHomeworkActive(hw),
-        ended: isHomeworkEnded(hw),
-      })),
-    activeHomeworks: db.homeworks
-      .filter(
-        (hw) => hw.classId === teacher.classId && !isHomeworkEnded(hw),
-      )
+    homeworks: mappedHomeworks.map((hw) => ({
+      ...hw,
+      startsAt: homeworkStartsAt(hw),
+      endsAt: homeworkEndsAt(hw),
+      dueDate: homeworkEndsAt(hw),
+      active: isHomeworkActive(hw),
+      ended: isHomeworkEnded(hw),
+    })),
+    activeHomeworks: mappedHomeworks
+      .filter((hw) => !isHomeworkEnded(hw))
       .map((hw) => ({
         ...hw,
         startsAt: homeworkStartsAt(hw),
@@ -116,8 +148,8 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
         active: isHomeworkActive(hw),
         ended: false,
       })),
-    endedHomeworks: db.homeworks
-      .filter((hw) => hw.classId === teacher.classId && isHomeworkEnded(hw))
+    endedHomeworks: mappedHomeworks
+      .filter((hw) => isHomeworkEnded(hw))
       .map((hw) => ({
         ...hw,
         startsAt: homeworkStartsAt(hw),
@@ -127,8 +159,8 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
         ended: true,
       })),
     checkingWorks: checkingWorks.map((sub) => {
-      const student = db.users.find((user) => user.id === sub.studentId);
-      const homework = db.homeworks.find((hw) => hw.id === sub.homeworkId);
+      const student = studentById.get(sub.studentId);
+      const homework = hwById.get(sub.homeworkId);
       return {
         ...sub,
         studentName: student?.displayName,
@@ -149,7 +181,7 @@ export const getTeacherDashboard = (teacher: AuthUser) => {
   };
 };
 
-export const createQuest = (
+export const createQuest = async (
   teacher: AuthUser,
   payload: Omit<Quest, 'id' | 'classId'>,
 ) => {
@@ -157,17 +189,37 @@ export const createQuest = (
     throw new Error('NO_CLASS');
   }
 
-  const quest: Quest = {
-    id: createId('quest'),
-    classId: teacher.classId,
-    ...payload,
-  };
+  const row = await prisma.quest.create({
+    data: {
+      id: createId('quest'),
+      classId: teacher.classId,
+      title: payload.title,
+      description: payload.description,
+      illustration: payload.illustration,
+      xpReward: payload.xpReward,
+      totalSteps: payload.totalSteps,
+      questions: payload.questions
+        ? (payload.questions as unknown as Prisma.InputJsonValue)
+        : undefined,
+      questionSource: payload.questionSource ?? null,
+    },
+  });
 
-  db.quests.unshift(quest);
-  return quest;
+  return {
+    id: row.id,
+    classId: row.classId,
+    title: row.title,
+    description: row.description,
+    illustration: row.illustration,
+    xpReward: row.xpReward,
+    totalSteps: row.totalSteps,
+    questions: (row.questions as unknown as Quest['questions']) ?? undefined,
+    questionSource:
+      row.questionSource === 'grade-math' ? ('grade-math' as const) : undefined,
+  };
 };
 
-export const createEvent = (
+export const createEvent = async (
   teacher: AuthUser,
   payload: {
     title: string;
@@ -185,53 +237,62 @@ export const createEvent = (
     throw new Error('INVALID_RANGE');
   }
 
-  const event: ClassEvent = {
-    id: createId('event'),
-    classId: teacher.classId,
-    title: payload.title,
-    description: payload.description,
-    startsAt: payload.startsAt,
-    endsAt: payload.endsAt,
-    date: payload.startsAt,
-    participantIds: [],
-    progress: 0,
-    materials: payload.materials ?? [],
-  };
-
-  db.events.unshift(event);
-
-  const classRoom = db.classes.find((item) => item.id === teacher.classId);
-  classRoom?.studentIds.forEach((studentId) => {
-    db.notifications.unshift({
-      id: createId('notif'),
-      userId: studentId,
-      title: 'Подія класу',
-      body: `У класі нова подія — ${event.title}`,
-      read: false,
-      createdAt: new Date().toISOString(),
-      type: 'event',
-    });
+  const row = await prisma.classEvent.create({
+    data: {
+      id: createId('event'),
+      classId: teacher.classId,
+      title: payload.title,
+      description: payload.description,
+      startsAt: new Date(payload.startsAt),
+      endsAt: new Date(payload.endsAt),
+      date: new Date(payload.startsAt),
+      participantIds: [],
+      progress: 0,
+      materials: payload.materials ?? [],
+    },
   });
+
+  const event = mapClassEvent(row);
+  const studentIds = await getClassStudentIds(teacher.classId);
+
+  if (studentIds.length > 0) {
+    await prisma.notification.createMany({
+      data: studentIds.map((studentId) => ({
+        id: createId('notif'),
+        userId: studentId,
+        title: 'Подія класу',
+        body: `У класі нова подія — ${event.title}`,
+        read: false,
+        createdAt: new Date(),
+        type: 'event',
+      })),
+    });
+  }
 
   return enrichEvent(event);
 };
 
-export const getTeacherEvents = (teacher: AuthUser) => {
+export const getTeacherEvents = async (teacher: AuthUser) => {
   if (!teacher.classId) {
     return [];
   }
 
-  return db.events
-    .filter((event) => event.classId === teacher.classId)
+  const rows = await prisma.classEvent.findMany({
+    where: { classId: teacher.classId },
+  });
+
+  const events = rows
+    .map(mapClassEvent)
     .sort(
       (a, b) =>
         new Date(eventStartsAt(b)).getTime() -
         new Date(eventStartsAt(a)).getTime(),
-    )
-    .map(enrichEvent);
+    );
+
+  return Promise.all(events.map(enrichEvent));
 };
 
-export const publishEventReview = (
+export const publishEventReview = async (
   teacher: AuthUser,
   eventId: string,
   payload: { comment: string; materials: string[] },
@@ -240,13 +301,15 @@ export const publishEventReview = (
     throw new Error('NO_CLASS');
   }
 
-  const event = db.events.find(
-    (item) => item.id === eventId && item.classId === teacher.classId,
-  );
+  const row = await prisma.classEvent.findFirst({
+    where: { id: eventId, classId: teacher.classId },
+  });
 
-  if (!event) {
+  if (!row) {
     return null;
   }
+
+  const event = mapClassEvent(row);
 
   if (new Date(eventEndsAt(event)).getTime() > Date.now()) {
     throw new Error('EVENT_NOT_ENDED');
@@ -265,14 +328,13 @@ export const publishEventReview = (
     .map((item) => item.trim())
     .filter(Boolean);
 
-  event.materials = materials;
-  event.reviewComment = comment;
-  event.reviewedAt = new Date().toISOString();
-  event.progress = 100;
-
-  const participants = event.participantIds
-    .map((id) => db.users.find((user) => user.id === id)?.displayName)
-    .filter(Boolean);
+  const participants = event.participantIds.length
+    ? (
+        await prisma.user.findMany({
+          where: { id: { in: event.participantIds } },
+        })
+      ).map((u) => u.displayName)
+    : [];
 
   const start = new Date(eventStartsAt(event));
   const end = new Date(eventEndsAt(event));
@@ -298,82 +360,100 @@ export const publishEventReview = (
       ? `\n\nБрали участь (${participants.length}): ${participants.join(', ')}`
       : '\n\nУчасників поки не було.';
 
-  const post = postsService.createPost(teacher, {
+  const post = await postsService.createPost(teacher, {
     text: `${comment}\n\n📅 ${event.title}\n${rangeLabel}${participantsBlock}${materialsBlock}`,
     imageEmoji: '🎉',
     category: 'подія',
   });
 
-  event.publishedPostId = post.id;
-
-  const classRoom = db.classes.find((item) => item.id === teacher.classId);
-  classRoom?.studentIds.forEach((studentId) => {
-    db.notifications.unshift({
-      id: createId('notif'),
-      userId: studentId,
-      title: 'Підсумок події',
-      body: `Учитель опублікував підсумок «${event.title}» на дошці`,
-      read: false,
-      createdAt: new Date().toISOString(),
-      type: 'event',
-    });
+  const updated = await prisma.classEvent.update({
+    where: { id: eventId },
+    data: {
+      materials,
+      reviewComment: comment,
+      reviewedAt: new Date(),
+      progress: 100,
+      publishedPostId: post.id,
+    },
   });
 
+  const studentIds = await getClassStudentIds(teacher.classId);
+  if (studentIds.length > 0) {
+    await prisma.notification.createMany({
+      data: studentIds.map((studentId) => ({
+        id: createId('notif'),
+        userId: studentId,
+        title: 'Підсумок події',
+        body: `Учитель опублікував підсумок «${event.title}» на дошці`,
+        read: false,
+        createdAt: new Date(),
+        type: 'event',
+      })),
+    });
+  }
+
   return {
-    event: enrichEvent(event),
+    event: await enrichEvent(mapClassEvent(updated)),
     post,
   };
 };
 
-export const createClassForTeacher = (
+export const createClassForTeacher = async (
   teacher: AuthUser,
   payload: { name: string; grade: Grade },
 ) => {
   if (teacher.classId) {
-    const existing = db.classes.find((item) => item.id === teacher.classId);
+    const existing = await prisma.classRoom.findUnique({
+      where: { id: teacher.classId },
+    });
     if (existing) {
       throw new Error('CLASS_EXISTS');
     }
   }
 
   const inviteCode = createInviteCode(payload.name);
-  const classRoom: ClassRoom = {
-    id: createId('class'),
-    schoolId: teacher.schoolId,
-    name: payload.name.trim(),
-    grade: payload.grade,
-    teacherId: teacher.id,
-    inviteCode,
-    studentIds: [] as string[],
-    goalTargetXp: 1000,
-    goalCurrentXp: 0,
-    goalTitle: 'Разом збираємо 1000 XP',
-  };
+  const classId = createId('class');
 
-  db.classes.push(classRoom);
+  await prisma.classRoom.create({
+    data: {
+      id: classId,
+      schoolId: teacher.schoolId,
+      name: payload.name.trim(),
+      grade: payload.grade,
+      teacherId: teacher.id,
+      inviteCode,
+      goalTargetXp: 1000,
+      goalCurrentXp: 0,
+      goalTitle: 'Разом збираємо 1000 XP',
+    },
+  });
 
-  const teacherUser = db.users.find((item) => item.id === teacher.id);
-  if (teacherUser) {
-    teacherUser.classId = classRoom.id;
-  }
+  await prisma.user.update({
+    where: { id: teacher.id },
+    data: { classId },
+  });
 
-  return classRoom;
+  return (await loadClassRoom(classId)) as ClassRoom;
 };
 
-export const getTeacherInvite = (teacher: AuthUser) => {
+export const getTeacherInvite = async (teacher: AuthUser) => {
   if (!teacher.classId) {
     return null;
   }
 
-  const classRoom = db.classes.find((item) => item.id === teacher.classId);
+  let classRoom = await loadClassRoom(teacher.classId);
 
   if (!classRoom) {
     return null;
   }
 
-  // Старі коди з кирилицею ламали посилання — одразу замінюємо на латиницю
   if (classRoom.inviteCode !== normalizeInviteCode(classRoom.inviteCode)) {
-    classRoom.inviteCode = createInviteCode(classRoom.name);
+    const inviteCode = createInviteCode(classRoom.name);
+    await prisma.classRoom.update({
+      where: { id: classRoom.id },
+      data: { inviteCode },
+    });
+    classRoom = { ...classRoom, inviteCode };
   }
 
   return {
@@ -385,17 +465,23 @@ export const getTeacherInvite = (teacher: AuthUser) => {
   };
 };
 
-export const regenerateInvite = (teacher: AuthUser) => {
+export const regenerateInvite = async (teacher: AuthUser) => {
   if (!teacher.classId) {
     throw new Error('NO_CLASS');
   }
 
-  const classRoom = db.classes.find((item) => item.id === teacher.classId);
+  const classRoom = await prisma.classRoom.findUnique({
+    where: { id: teacher.classId },
+  });
 
   if (!classRoom) {
     throw new Error('NO_CLASS');
   }
 
-  classRoom.inviteCode = createInviteCode(classRoom.name);
+  await prisma.classRoom.update({
+    where: { id: classRoom.id },
+    data: { inviteCode: createInviteCode(classRoom.name) },
+  });
+
   return getTeacherInvite(teacher);
 };

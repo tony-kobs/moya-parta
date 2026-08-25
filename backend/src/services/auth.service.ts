@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../data/seed';
+import { prisma } from '../lib/prisma';
+import { getClassStudentIds, mapUser } from '../lib/mappers';
 import { createId, toPublicUser } from '../helpers/response';
 import type { AuthUser, User } from '../types';
 
@@ -26,14 +27,15 @@ export const loginUser = async (
   login: string,
   password: string,
 ): Promise<{ token: string; user: AuthUser } | null> => {
-  const user = db.users.find(
-    (item) => item.email.toLowerCase() === login.toLowerCase(),
-  );
+  const row = await prisma.user.findFirst({
+    where: { email: login.toLowerCase() },
+  });
 
-  if (!user) {
+  if (!row) {
     return null;
   }
 
+  const user = mapUser(row);
   const isValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!isValid) {
@@ -43,9 +45,9 @@ export const loginUser = async (
   return createSession(user);
 };
 
-export const getCurrentUser = (userId: string): AuthUser | null => {
-  const user = db.users.find((item) => item.id === userId);
-  return user ? (toPublicUser(user) as AuthUser) : null;
+export const getCurrentUser = async (userId: string): Promise<AuthUser | null> => {
+  const row = await prisma.user.findUnique({ where: { id: userId } });
+  return row ? (toPublicUser(mapUser(row)) as AuthUser) : null;
 };
 
 const CYRILLIC_TO_LATIN: Record<string, string> = {
@@ -117,18 +119,20 @@ export const registerTeacher = async (payload: {
   password: string;
   avatarEmoji?: string;
 }): Promise<{ token: string; user: AuthUser }> => {
-  const exists = db.users.some(
-    (item) => item.email.toLowerCase() === payload.login.toLowerCase(),
-  );
+  const exists = await prisma.user.findFirst({
+    where: { email: payload.login.toLowerCase() },
+  });
 
   if (exists) {
     throw new Error('LOGIN_TAKEN');
   }
 
   const schoolId = createId('school');
-  db.schools.push({
-    id: schoolId,
-    name: `Клас ${payload.displayName}`,
+  await prisma.school.create({
+    data: {
+      id: schoolId,
+      name: `Клас ${payload.displayName}`,
+    },
   });
 
   const allowedTeacherAvatars = ['🧑‍🏫', '👨‍🏫', '👩‍🏫'];
@@ -138,26 +142,29 @@ export const registerTeacher = async (payload: {
       : '🧑‍🏫';
 
   const [firstName, ...rest] = payload.displayName.trim().split(/\s+/);
-  const user: User = {
-    id: createId('user'),
-    email: payload.login.toLowerCase(),
-    passwordHash: await bcrypt.hash(payload.password, 8),
-    role: 'teacher',
-    firstName: firstName || payload.displayName,
-    lastName: rest.join(' '),
-    displayName: payload.displayName.trim(),
-    schoolId,
-    avatarColor: '#7BC6A4',
-    avatarEmoji,
-  };
+  const userId = createId('user');
+  const row = await prisma.user.create({
+    data: {
+      id: userId,
+      email: payload.login.toLowerCase(),
+      passwordHash: await bcrypt.hash(payload.password, 8),
+      role: 'teacher',
+      firstName: firstName || payload.displayName,
+      lastName: rest.join(' '),
+      displayName: payload.displayName.trim(),
+      schoolId,
+      avatarColor: '#7BC6A4',
+      avatarEmoji,
+    },
+  });
 
-  db.users.push(user);
-  return createSession(user);
+  return createSession(mapUser(row));
 };
 
-export const getInvitePreview = (inviteCode: string) => {
+export const getInvitePreview = async (inviteCode: string) => {
   const normalized = normalizeInviteCode(inviteCode);
-  const classRoom = db.classes.find(
+  const classes = await prisma.classRoom.findMany();
+  const classRoom = classes.find(
     (item) => normalizeInviteCode(item.inviteCode) === normalized,
   );
 
@@ -165,14 +172,17 @@ export const getInvitePreview = (inviteCode: string) => {
     return null;
   }
 
-  const teacher = db.users.find((item) => item.id === classRoom.teacherId);
+  const teacher = await prisma.user.findUnique({
+    where: { id: classRoom.teacherId },
+  });
+  const studentsCount = (await getClassStudentIds(classRoom.id)).length;
 
   return {
     classId: classRoom.id,
     className: classRoom.name,
     inviteCode: classRoom.inviteCode,
     teacherName: teacher?.displayName ?? 'Учитель',
-    studentsCount: classRoom.studentIds.length,
+    studentsCount,
   };
 };
 
@@ -183,17 +193,20 @@ export const registerStudentByInvite = async (payload: {
   password: string;
   avatarEmoji?: string;
 }): Promise<{ token: string; user: AuthUser }> => {
-  const classRoom = db.classes.find(
-    (item) => normalizeInviteCode(item.inviteCode) === normalizeInviteCode(payload.inviteCode),
+  const classes = await prisma.classRoom.findMany();
+  const classRoom = classes.find(
+    (item) =>
+      normalizeInviteCode(item.inviteCode) ===
+      normalizeInviteCode(payload.inviteCode),
   );
 
   if (!classRoom) {
     throw new Error('INVITE_NOT_FOUND');
   }
 
-  const exists = db.users.some(
-    (item) => item.email.toLowerCase() === payload.login.toLowerCase(),
-  );
+  const exists = await prisma.user.findFirst({
+    where: { email: payload.login.toLowerCase() },
+  });
 
   if (exists) {
     throw new Error('LOGIN_TAKEN');
@@ -205,31 +218,45 @@ export const registerStudentByInvite = async (payload: {
       : AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
 
   const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+  const userId = createId('user');
 
-  const user: User = {
-    id: createId('user'),
-    email: payload.login.toLowerCase(),
-    passwordHash: await bcrypt.hash(payload.password, 8),
-    role: 'student',
-    firstName: payload.displayName.trim(),
-    lastName: '',
-    displayName: payload.displayName.trim(),
-    schoolId: classRoom.schoolId,
-    classId: classRoom.id,
-    avatarColor: color,
-    avatarEmoji: emoji,
-  };
+  const row = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        id: userId,
+        email: payload.login.toLowerCase(),
+        passwordHash: await bcrypt.hash(payload.password, 8),
+        role: 'student',
+        firstName: payload.displayName.trim(),
+        lastName: '',
+        displayName: payload.displayName.trim(),
+        schoolId: classRoom.schoolId,
+        classId: classRoom.id,
+        avatarColor: color,
+        avatarEmoji: emoji,
+      },
+    });
 
-  db.users.push(user);
-  classRoom.studentIds.push(user.id);
-  db.studentProfiles.push({
-    userId: user.id,
-    level: 1,
-    xp: 0,
-    xpToNextLevel: 1000,
-    unlockedItems: [],
-    onboardingCompleted: false,
+    await tx.classMembership.create({
+      data: {
+        classId: classRoom.id,
+        studentId: user.id,
+      },
+    });
+
+    await tx.studentProfile.create({
+      data: {
+        userId: user.id,
+        level: 1,
+        xp: 0,
+        xpToNextLevel: 1000,
+        unlockedItems: [],
+        onboardingCompleted: false,
+      },
+    });
+
+    return user;
   });
 
-  return createSession(user);
+  return createSession(mapUser(row));
 };

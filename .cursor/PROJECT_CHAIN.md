@@ -1,7 +1,7 @@
 # Цифровий світ класу — ланцюг проєкту
 
 > Живий файл стану. Агент **обовʼязково** читає його на старті задачі і **оновлює** після змін.
-> Останнє оновлення: 2026-08-24 (MP-UI-01: «Твій день» на дашборді учня)
+> Останнє оновлення: 2026-08-26 (MySQL + Prisma замість in-memory seed)
 >
 > Початкове ТЗ: [`.cursor/ORIGINAL_PROMPT.md`](./ORIGINAL_PROMPT.md)
 > Презентація: [`presentation/index.html`](../presentation/index.html)
@@ -57,7 +57,7 @@
 ```
 /
 ├── frontend/     Next.js App Router, TS, CSS Modules, TanStack Query, Zustand
-├── backend/      Express, TS (GoIT: routes → controllers → services), in-memory seed
+├── backend/      Express, TS (GoIT: routes → controllers → services), Prisma + MySQL
 ├── presentation/ ← дерево продукту для команди (HTML + Mermaid)
 ├── README.md
 └── .cursor/
@@ -127,7 +127,7 @@ Demo:
 - [x] AvatarPicker з selected-станом
 
 ### Чого НЕМАЄ (свідомо / далі)
-- [ ] Реальна БД (зараз in-memory seed)
+- [x] MySQL через Prisma (`192.168.0.212`, БД `parta`); seed — `npm run prisma:seed`
 - [ ] Батьківський кабінет (відхилено — варіант A)
 - [ ] School admin
 - [ ] Вчитель сам заводить учнів (стікери/PIN)
@@ -199,7 +199,7 @@ Demo:
 
 ## 6. Наступні кроки
 
-1. **PostgreSQL замість in-memory seed** — детальний план: [`.cursor/NEXT_STEP_POSTGRES.md`](./NEXT_STEP_POSTGRES.md). Потім одразу class-scoped checks (IDOR).
+1. **Class-scoped checks (IDOR)** на всіх learning / event / post мутаціях — деталі: [`.cursor/NEXT_STEP_MYSQL.md`](./NEXT_STEP_MYSQL.md) §P0
 2. End-to-end: новий вчитель → клас → учень → пост → чат → завдання → перевірка.
 3. За потреби: вчитель створює учнів вручну (1–2 клас).
 4. Пізніше: websocket замість polling.
