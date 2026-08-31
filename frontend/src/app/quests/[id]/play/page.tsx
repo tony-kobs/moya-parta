@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/navigation/AppShell';
@@ -25,12 +25,38 @@ export default function QuestPlayPage() {
 
 function QuestPlayContent() {
   const params = useParams<{ id: string }>();
+  const { data, isLoading } = useQuery({
+    queryKey: ['quest', params.id],
+    queryFn: () => studentApi.getQuest(params.id),
+  });
+
+  if (isLoading) {
+    return <LoadingState label="Готуємо експедицію..." />;
+  }
+
+  if (!data) {
+    return (
+      <EmptyState
+        title="Квест не знайдено"
+        description="Можливо, його ще не додав учитель, або він належить іншому класу."
+      />
+    );
+  }
+
+  return <QuestPlaySession key={data.id} quest={data} />;
+}
+
+function QuestPlaySession({
+  quest: data,
+}: {
+  quest: NonNullable<Awaited<ReturnType<typeof studentApi.getQuest>>>;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const showToast = useUiStore((state) => state.showToast);
 
-  const [activeStep, setActiveStep] = useState<number | null>(null);
-  const [completed, setCompleted] = useState(false);
+  const [activeStep, setActiveStep] = useState(data.currentStep ?? 0);
+  const [completed, setCompleted] = useState(Boolean(data.completed));
   const [xpEarned, setXpEarned] = useState(0);
   const [feedback, setFeedback] = useState<{
     correct: boolean;
@@ -39,21 +65,9 @@ function QuestPlayContent() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [nextStep, setNextStep] = useState<number | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['quest', params.id],
-    queryFn: () => studentApi.getQuest(params.id),
-  });
-
-  useEffect(() => {
-    if (data && activeStep === null) {
-      setActiveStep(data.currentStep ?? 0);
-      setCompleted(Boolean(data.completed));
-    }
-  }, [data, activeStep]);
-
   const answerMutation = useMutation({
     mutationFn: (optionIndex: number) =>
-      studentApi.answerQuest(params.id, activeStep ?? 0, optionIndex),
+      studentApi.answerQuest(data.id, activeStep, optionIndex),
     onSuccess: (result) => {
       setFeedback({ correct: result.correct, message: result.message });
 
@@ -75,19 +89,6 @@ function QuestPlayContent() {
       showToast('Не вдалося перевірити відповідь. Спробуй ще раз.', 'error');
     },
   });
-
-  if (isLoading || activeStep === null) {
-    return <LoadingState label="Готуємо експедицію..." />;
-  }
-
-  if (!data) {
-    return (
-      <EmptyState
-        title="Квест не знайдено"
-        description="Можливо, його ще не додав учитель, або він належить іншому класу."
-      />
-    );
-  }
 
   const totalSteps = data.totalSteps;
   const questions = data.questions ?? [];
