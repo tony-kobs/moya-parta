@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -42,6 +43,8 @@ function DeskContent() {
     queryFn: studentApi.getBackpack,
   });
 
+  const [bannerImageFailed, setBannerImageFailed] = useState(false);
+
   if (isLoading) {
     return <LoadingState label="Готуємо твою парту..." />;
   }
@@ -56,25 +59,29 @@ function DeskContent() {
   }
 
   const xpProgress = computeXpProgress(data.profile.xp, data.profile.xpToNextLevel);
+  const showBannerImage = !bannerImageFailed;
   const nextReward = pickNextReward(backpack);
 
   return (
     <div className={styles.page}>
       <motion.section
-        className={styles.hero}
+        className={`${styles.hero} ${!showBannerImage ? styles.heroFallback : ''}`}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className={styles.heroArt} aria-hidden="true">
-          <Image
-            src="/brand/desk-scene.png"
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 60vw"
-            className={styles.heroArtImage}
-            priority
-          />
+          {showBannerImage ? (
+            <Image
+              src="/brand/desk-scene.png"
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 60vw"
+              className={styles.heroArtImage}
+              priority
+              onError={() => setBannerImageFailed(true)}
+            />
+          ) : null}
           <div className={styles.heroArtShade} />
         </div>
 

@@ -29,6 +29,15 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
+.inverted {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(8, 16, 16, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
 .status {
   margin: 0;
   font-size: 0.8rem;
@@ -37,18 +46,27 @@
 }
 
 .inverted .status {
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .reward {
   margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  font-size: 0.78rem;
+  font-weight: 800;
   color: var(--color-text);
+  background: var(--color-warm-soft);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
 }
 
 .inverted .reward {
-  color: #ffffff;
+  color: #3f320c;
+  background: var(--color-warm);
 }
 
 .disclosure {
@@ -63,6 +81,7 @@
 
 .inverted .disclosure summary {
   color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .disclosure p {
@@ -72,5 +91,5 @@
 }
 
 .inverted .disclosure p {
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.85);
 }
