@@ -2,8 +2,10 @@
 .page {
   min-height: 100vh;
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: var(--page-pad-x);
   background:
     radial-gradient(circle at 18% 12%, rgba(142, 197, 216, 0.35), transparent 32%),
@@ -13,6 +15,7 @@
 
 .card {
   width: min(440px, 100%);
+  margin: auto 0;
   background: var(--color-surface);
   border-radius: clamp(20px, 4vw, 28px);
   box-shadow: var(--shadow-card);

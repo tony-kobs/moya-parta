@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Button } from '@/components/ui/Button';
 import { BrandMark } from '@/components/brand/BrandMark';
 import styles from '../login/login.module.css';
@@ -40,6 +41,7 @@ export default function JoinEntryPage() {
         </p>
         <p className={styles.hint}>Демо-код класу: 3B-DEMO</p>
       </div>
+      <SiteFooter />
     </main>
   );
 }
