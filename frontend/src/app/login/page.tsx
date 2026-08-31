@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Button } from '@/components/ui/Button';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { useAuthStore } from '@/store/authStore';
@@ -165,6 +166,7 @@ export default function LoginPage() {
           </div>
         </section>
       </div>
+      <SiteFooter />
     </main>
   );
 }

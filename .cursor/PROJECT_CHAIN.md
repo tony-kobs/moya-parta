@@ -1,7 +1,7 @@
 # Цифровий світ класу — ланцюг проєкту
 
 > Живий файл стану. Агент **обовʼязково** читає його на старті задачі і **оновлює** після змін.
-> Останнє оновлення: 2026-08-26 (MySQL + Prisma замість in-memory seed)
+> Останнє оновлення: 2026-08-31 (LICENSE + футер © Antony Kobys)
 >
 > Початкове ТЗ: [`.cursor/ORIGINAL_PROMPT.md`](./ORIGINAL_PROMPT.md)
 > Презентація: [`presentation/index.html`](../presentation/index.html)
@@ -125,6 +125,8 @@ Demo:
 - [x] Червоні бейджі «нове»: чат, дошка, завдання/навчання, події, сповіщення, перемоги
 - [x] Loading / empty / toast
 - [x] AvatarPicker з selected-станом
+- [x] LICENSE (© 2026 Antony Kobys, all rights reserved)
+- [x] Мінімалістичний футер на публічних сторінках (landing, login, register, join)
 
 ### Чого НЕМАЄ (свідомо / далі)
 - [x] MySQL через Prisma (`192.168.0.212`, БД `parta`); seed — `npm run prisma:seed`

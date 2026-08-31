@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Button } from '@/components/ui/Button';
 import { BrandMark } from '@/components/brand/BrandMark';
 import {
@@ -71,6 +72,7 @@ export default function JoinClassPage() {
     return (
       <main className={pageStyles.page}>
         <LoadingState label="Шукаємо клас..." />
+        <SiteFooter />
       </main>
     );
   }
@@ -85,6 +87,7 @@ export default function JoinClassPage() {
             <Button fullWidth>Ввести інший код</Button>
           </Link>
         </div>
+        <SiteFooter />
       </main>
     );
   }
@@ -152,6 +155,7 @@ export default function JoinClassPage() {
           {isSubmitting ? 'Заходимо...' : 'Зайти в клас'}
         </Button>
       </form>
+      <SiteFooter />
     </main>
   );
 }

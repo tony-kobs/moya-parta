@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Button } from '@/components/ui/Button';
 import styles from './page.module.css';
 
@@ -156,13 +157,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className={styles.footer}>
-        <BrandMark size="sm" href="/" />
-        <p>
-          © {new Date().getFullYear()} Моя парта · для вчителя й учнів 1–4
-          класів
-        </p>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
