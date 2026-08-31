@@ -1,4 +1,5 @@
-import { db } from '../data/seed';
+import { prisma } from '../lib/prisma';
+import { mapUser } from '../lib/mappers';
 import { toPublicUser } from '../helpers/response';
 import type { ClassEvent } from '../types';
 
@@ -30,9 +31,16 @@ export const getEventLifecycle = (event: ClassEvent): EventLifecycle => {
   return 'ended';
 };
 
-export const enrichEvent = (event: ClassEvent) => {
+export const enrichEvent = async (event: ClassEvent) => {
+  const users = event.participantIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: event.participantIds } },
+      })
+    : [];
+  const byId = new Map(users.map((u) => [u.id, mapUser(u)]));
+
   const participants = event.participantIds
-    .map((id) => db.users.find((user) => user.id === id))
+    .map((id) => byId.get(id))
     .filter(Boolean)
     .map((user) => {
       const publicUser = toPublicUser(user!);

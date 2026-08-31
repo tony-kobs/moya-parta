@@ -7,13 +7,13 @@ import { AuthRequest } from '../middlewares/auth';
 import * as postsService from '../services/posts.service';
 import * as studentService from '../services/student.service';
 
-export const getDesk = (req: AuthRequest, res: Response): void => {
+export const getDesk = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const desk = studentService.getStudentDesk(req.user.id);
+  const desk = await studentService.getStudentDesk(req.user.id);
 
   if (!desk) {
     sendError(res, 'Парту не знайдено', HTTP_STATUS.NOT_FOUND);
@@ -23,22 +23,22 @@ export const getDesk = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, desk);
 };
 
-export const getBackpack = (req: AuthRequest, res: Response): void => {
+export const getBackpack = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, studentService.getBackpack(req.user.id));
+  sendSuccess(res, await studentService.getBackpack(req.user.id));
 };
 
-export const completeOnboarding = (req: AuthRequest, res: Response): void => {
+export const completeOnboarding = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const profile = studentService.completeOnboarding(req.user.id);
+  const profile = await studentService.completeOnboarding(req.user.id);
 
   if (!profile) {
     sendError(res, 'Профіль не знайдено', HTTP_STATUS.NOT_FOUND);
@@ -48,13 +48,13 @@ export const completeOnboarding = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, profile);
 };
 
-export const getClass = (req: AuthRequest, res: Response): void => {
+export const getClass = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user?.classId) {
     sendError(res, 'Клас не знайдено', HTTP_STATUS.NOT_FOUND);
     return;
   }
 
-  const overview = postsService.getClassOverview(
+  const overview = await postsService.getClassOverview(
     req.user.classId,
     req.user.schoolId,
   );
@@ -67,13 +67,13 @@ export const getClass = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, overview);
 };
 
-export const getMyBoard = (req: AuthRequest, res: Response): void => {
+export const getMyBoard = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, postsService.getMyPosts(req.user.id));
+  sendSuccess(res, await postsService.getMyPosts(req.user.id));
 };
 
 const createPostSchema = z.object({
@@ -82,7 +82,7 @@ const createPostSchema = z.object({
   category: z.string().optional(),
 });
 
-export const createPost = (req: AuthRequest, res: Response): void => {
+export const createPost = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -96,7 +96,7 @@ export const createPost = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const post = postsService.createPost(req.user, parsed.data);
+    const post = await postsService.createPost(req.user, parsed.data);
     sendSuccess(res, post, HTTP_STATUS.CREATED);
   } catch {
     sendError(res, 'Не вдалося поділитися', HTTP_STATUS.BAD_REQUEST);
@@ -107,7 +107,7 @@ const reactionSchema = z.object({
   reaction: z.string().min(1),
 });
 
-export const reactToPost = (req: AuthRequest, res: Response): void => {
+export const reactToPost = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -121,7 +121,7 @@ export const reactToPost = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const post = postsService.reactToPost(
+    const post = await postsService.reactToPost(
       getParam(req.params.id),
       req.user.id,
       parsed.data.reaction,

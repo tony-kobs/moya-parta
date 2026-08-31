@@ -1,23 +1,23 @@
-import { db } from '../data/seed';
+import { prisma } from '../lib/prisma';
+import {
+  getClassStudentIds,
+  loadClassRoom,
+  mapClassEvent,
+  mapPost,
+  mapQuest,
+  mapUser,
+} from '../lib/mappers';
 import { createId, toPublicUser } from '../helpers/response';
 import { enrichEvent } from '../helpers/events';
 import type { AuthUser, Post, PostStatus } from '../types';
+import { enrichPost } from './student.service';
 
 const SAFE_REACTIONS = ['❤️', '👏', '⭐', '😊', '🎉', '👍'] as const;
 
-const enrichPost = (post: Post) => {
-  const author = db.users.find((user) => user.id === post.authorId);
-
+const withReactionCounts = async (post: Post) => {
+  const enriched = await enrichPost(post);
   return {
-    ...post,
-    author: author
-      ? {
-          id: author.id,
-          displayName: author.displayName,
-          avatarColor: author.avatarColor,
-          avatarEmoji: author.avatarEmoji,
-        }
-      : null,
+    ...enriched,
     reactionCounts: Object.fromEntries(
       Object.entries(post.reactions).map(([emoji, users]) => [
         emoji,
@@ -27,32 +27,23 @@ const enrichPost = (post: Post) => {
   };
 };
 
-export const getClassBoard = (classId: string, schoolId: string) => {
-  return db.posts
-    .filter(
-      (post) =>
-        post.classId === classId &&
-        post.schoolId === schoolId &&
-        post.status === 'published',
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .map(enrichPost);
+export const getClassBoard = async (classId: string, schoolId: string) => {
+  const rows = await prisma.post.findMany({
+    where: { classId, schoolId, status: 'published' },
+    orderBy: { createdAt: 'desc' },
+  });
+  return Promise.all(rows.map((row) => withReactionCounts(mapPost(row))));
 };
 
-export const getMyPosts = (userId: string) => {
-  return db.posts
-    .filter((post) => post.authorId === userId && post.status !== 'rejected')
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .map(enrichPost);
+export const getMyPosts = async (userId: string) => {
+  const rows = await prisma.post.findMany({
+    where: { authorId: userId, status: { not: 'rejected' } },
+    orderBy: { createdAt: 'desc' },
+  });
+  return Promise.all(rows.map((row) => withReactionCounts(mapPost(row))));
 };
 
-export const createPost = (
+export const createPost = async (
   user: AuthUser,
   payload: { text: string; imageEmoji?: string; category?: string },
 ) => {
@@ -60,25 +51,25 @@ export const createPost = (
     throw new Error('NO_CLASS');
   }
 
-  const post: Post = {
-    id: createId('post'),
-    authorId: user.id,
-    classId: user.classId,
-    schoolId: user.schoolId,
-    text: payload.text.trim(),
-    imageEmoji: payload.imageEmoji,
-    category: payload.category,
-    status: 'published',
-    createdAt: new Date().toISOString(),
-    reactions: {},
-  };
+  const row = await prisma.post.create({
+    data: {
+      id: createId('post'),
+      authorId: user.id,
+      classId: user.classId,
+      schoolId: user.schoolId,
+      text: payload.text.trim(),
+      imageEmoji: payload.imageEmoji,
+      category: payload.category,
+      status: 'published',
+      createdAt: new Date(),
+      reactions: {},
+    },
+  });
 
-  db.posts.unshift(post);
-
-  return enrichPost(post);
+  return withReactionCounts(mapPost(row));
 };
 
-export const reactToPost = (
+export const reactToPost = async (
   postId: string,
   userId: string,
   reaction: string,
@@ -87,113 +78,129 @@ export const reactToPost = (
     throw new Error('INVALID_REACTION');
   }
 
-  const post = db.posts.find(
-    (item) => item.id === postId && item.status === 'published',
-  );
+  const row = await prisma.post.findFirst({
+    where: { id: postId, status: 'published' },
+  });
 
-  if (!post) {
+  if (!row) {
     return null;
   }
 
-  for (const key of Object.keys(post.reactions)) {
-    post.reactions[key] = post.reactions[key].filter((id) => id !== userId);
-    if (post.reactions[key].length === 0) {
-      delete post.reactions[key];
+  const post = mapPost(row);
+  const reactions = { ...post.reactions };
+
+  for (const key of Object.keys(reactions)) {
+    reactions[key] = reactions[key].filter((id) => id !== userId);
+    if (reactions[key].length === 0) {
+      delete reactions[key];
     }
   }
 
-  if (!post.reactions[reaction]) {
-    post.reactions[reaction] = [];
+  if (!reactions[reaction]) {
+    reactions[reaction] = [];
   }
+  reactions[reaction].push(userId);
 
-  post.reactions[reaction].push(userId);
+  const updated = await prisma.post.update({
+    where: { id: postId },
+    data: { reactions },
+  });
 
   if (post.authorId !== userId) {
-    const reactor = db.users.find((user) => user.id === userId);
-    db.notifications.unshift({
-      id: createId('notif'),
-      userId: post.authorId,
-      title: 'Підтримка',
-      body: `${reactor?.displayName ?? 'Хтось'} підтримав твою публікацію`,
-      read: false,
-      createdAt: new Date().toISOString(),
-      type: 'reaction',
+    const reactor = await prisma.user.findUnique({ where: { id: userId } });
+    await prisma.notification.create({
+      data: {
+        id: createId('notif'),
+        userId: post.authorId,
+        title: 'Підтримка',
+        body: `${reactor?.displayName ?? 'Хтось'} підтримав твою публікацію`,
+        read: false,
+        createdAt: new Date(),
+        type: 'reaction',
+      },
     });
   }
 
-  return enrichPost(post);
+  return withReactionCounts(mapPost(updated));
 };
 
-export const moderatePost = (
+export const moderatePost = async (
   postId: string,
   status: PostStatus,
   moderator: AuthUser,
 ) => {
-  const post = db.posts.find((item) => item.id === postId);
+  const row = await prisma.post.findUnique({ where: { id: postId } });
 
-  if (!post || post.schoolId !== moderator.schoolId) {
+  if (!row || row.schoolId !== moderator.schoolId) {
     return null;
   }
 
-  if (
-    moderator.role === 'teacher' &&
-    post.classId !== moderator.classId
-  ) {
+  if (moderator.role === 'teacher' && row.classId !== moderator.classId) {
     return null;
   }
 
-  post.status = status;
+  const updated = await prisma.post.update({
+    where: { id: postId },
+    data: { status },
+  });
 
   if (status === 'published') {
-    db.notifications.unshift({
-      id: createId('notif'),
-      userId: post.authorId,
-      title: 'Твою роботу показали!',
-      body: 'Учитель відкрив твою публікацію для класу',
-      read: false,
-      createdAt: new Date().toISOString(),
-      type: 'moderation',
+    await prisma.notification.create({
+      data: {
+        id: createId('notif'),
+        userId: updated.authorId,
+        title: 'Твою роботу показали!',
+        body: 'Учитель відкрив твою публікацію для класу',
+        read: false,
+        createdAt: new Date(),
+        type: 'moderation',
+      },
     });
   }
 
-  return enrichPost(post);
+  return withReactionCounts(mapPost(updated));
 };
 
-export const getPendingPosts = (classId: string, schoolId: string) => {
-  return db.posts
-    .filter(
-      (post) =>
-        post.classId === classId &&
-        post.schoolId === schoolId &&
-        post.status === 'pending',
-    )
-    .map(enrichPost);
+export const getPendingPosts = async (classId: string, schoolId: string) => {
+  const rows = await prisma.post.findMany({
+    where: { classId, schoolId, status: 'pending' },
+  });
+  return Promise.all(rows.map((row) => withReactionCounts(mapPost(row))));
 };
 
-export const getClassOverview = (classId: string, schoolId: string) => {
-  const classRoom = db.classes.find(
-    (item) => item.id === classId && item.schoolId === schoolId,
-  );
+export const getClassOverview = async (classId: string, schoolId: string) => {
+  const classRoom = await loadClassRoom(classId);
 
-  if (!classRoom) {
+  if (!classRoom || classRoom.schoolId !== schoolId) {
     return null;
   }
 
-  const teacher = db.users.find((user) => user.id === classRoom.teacherId);
-  const students = classRoom.studentIds
-    .map((id) => db.users.find((user) => user.id === id))
+  const teacherRow = await prisma.user.findUnique({
+    where: { id: classRoom.teacherId },
+  });
+  const studentIds = await getClassStudentIds(classId);
+  const studentRows = studentIds.length
+    ? await prisma.user.findMany({ where: { id: { in: studentIds } } })
+    : [];
+  const byId = new Map(studentRows.map((u) => [u.id, u]));
+  const students = studentIds
+    .map((id) => byId.get(id))
     .filter(Boolean)
-    .map((user) => toPublicUser(user!));
+    .map((user) => toPublicUser(mapUser(user!)));
+
+  const eventRows = await prisma.classEvent.findMany({ where: { classId } });
+  const events = await Promise.all(
+    eventRows.map((e) => enrichEvent(mapClassEvent(e))),
+  );
+  const questRows = await prisma.quest.findMany({ where: { classId } });
 
   return {
     class: classRoom,
-    teacher: teacher ? toPublicUser(teacher) : null,
+    teacher: teacherRow ? toPublicUser(mapUser(teacherRow)) : null,
     students,
-    board: getClassBoard(classId, schoolId),
-    events: db.events
-      .filter((event) => event.classId === classId)
-      .map(enrichEvent),
-    quests: db.quests.filter((quest) => quest.classId === classId),
+    board: await getClassBoard(classId, schoolId),
+    events,
+    quests: questRows.map(mapQuest),
     goal: {
       title: classRoom.goalTitle,
       current: classRoom.goalCurrentXp,

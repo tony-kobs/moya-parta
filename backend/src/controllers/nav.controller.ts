@@ -5,13 +5,13 @@ import { sendError, sendSuccess } from '../helpers/response';
 import { AuthRequest } from '../middlewares/auth';
 import * as navService from '../services/nav.service';
 
-export const getBadges = (req: AuthRequest, res: Response): void => {
+export const getBadges = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, navService.getNavBadges(req.user));
+  sendSuccess(res, await navService.getNavBadges(req.user));
 };
 
 const seenSchema = z.object({
@@ -26,7 +26,7 @@ const seenSchema = z.object({
   ]),
 });
 
-export const markSeen = (req: AuthRequest, res: Response): void => {
+export const markSeen = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -39,5 +39,5 @@ export const markSeen = (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  sendSuccess(res, navService.markNavSectionSeen(req.user, parsed.data.section));
+  sendSuccess(res, await navService.markNavSectionSeen(req.user, parsed.data.section));
 };

@@ -8,13 +8,13 @@ import * as learningService from '../services/learning.service';
 import * as postsService from '../services/posts.service';
 import * as teacherService from '../services/teacher.service';
 
-export const getDashboard = (req: AuthRequest, res: Response): void => {
+export const getDashboard = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const dashboard = teacherService.getTeacherDashboard(req.user);
+  const dashboard = await teacherService.getTeacherDashboard(req.user);
   sendSuccess(res, dashboard);
 };
 
@@ -57,7 +57,7 @@ const homeworkSchema = z
     }
   });
 
-export const createHomework = (req: AuthRequest, res: Response): void => {
+export const createHomework = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -73,7 +73,7 @@ export const createHomework = (req: AuthRequest, res: Response): void => {
   try {
     const startsAt = parsed.data.startsAt!;
     const endsAt = parsed.data.endsAt ?? parsed.data.dueDate!;
-    const homework = learningService.createHomework(req.user, {
+    const homework = await learningService.createHomework(req.user, {
       subject: parsed.data.subject,
       title: parsed.data.title,
       description: parsed.data.description,
@@ -92,13 +92,13 @@ export const createHomework = (req: AuthRequest, res: Response): void => {
   }
 };
 
-export const getHomeworkAnalytics = (req: AuthRequest, res: Response): void => {
+export const getHomeworkAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const analytics = learningService.getHomeworkAnalytics(
+  const analytics = await learningService.getHomeworkAnalytics(
     getParam(req.params.id),
     req.user,
   );
@@ -111,13 +111,13 @@ export const getHomeworkAnalytics = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, analytics);
 };
 
-export const deleteHomework = (req: AuthRequest, res: Response): void => {
+export const deleteHomework = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const homework = learningService.deleteHomework(
+  const homework = await learningService.deleteHomework(
     getParam(req.params.id),
     req.user,
   );
@@ -135,7 +135,7 @@ const reviewSchema = z.object({
   comment: z.string().max(500).default(''),
 });
 
-export const reviewSubmission = (req: AuthRequest, res: Response): void => {
+export const reviewSubmission = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -148,7 +148,7 @@ export const reviewSubmission = (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  const submission = learningService.reviewSubmission(
+  const submission = await learningService.reviewSubmission(
     getParam(req.params.id),
     req.user,
     parsed.data,
@@ -162,25 +162,25 @@ export const reviewSubmission = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, submission);
 };
 
-export const getQuizTemplates = (req: AuthRequest, res: Response): void => {
+export const getQuizTemplates = async (req: AuthRequest, res: Response): Promise<void> => {
   const subject =
     typeof req.query.subject === 'string' ? req.query.subject : undefined;
-  sendSuccess(res, learningService.getQuizTemplates(subject));
+  sendSuccess(res, await learningService.getQuizTemplates(subject));
 };
 
-export const getClassQuizzes = (req: AuthRequest, res: Response): void => {
+export const getClassQuizzes = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user?.classId) {
     sendError(res, 'Клас не знайдено', HTTP_STATUS.NOT_FOUND);
     return;
   }
 
-  sendSuccess(res, learningService.getClassQuizzes(req.user.classId));
+  sendSuccess(res, await learningService.getClassQuizzes(req.user.classId));
 };
 
-export const assignQuizFromTemplate = (
+export const assignQuizFromTemplate = async (
   req: AuthRequest,
   res: Response,
-): void => {
+): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -194,7 +194,7 @@ export const assignQuizFromTemplate = (
   }
 
   try {
-    const quiz = learningService.assignQuizFromTemplate(
+    const quiz = await learningService.assignQuizFromTemplate(
       req.user,
       templateId.data,
     );
@@ -225,7 +225,7 @@ const createQuizSchema = z.object({
     .min(1),
 });
 
-export const createQuiz = (req: AuthRequest, res: Response): void => {
+export const createQuiz = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -239,20 +239,20 @@ export const createQuiz = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const quiz = learningService.createClassQuiz(req.user, parsed.data);
+    const quiz = await learningService.createClassQuiz(req.user, parsed.data);
     sendSuccess(res, quiz, HTTP_STATUS.CREATED);
   } catch {
     sendError(res, 'Не вдалося створити тест');
   }
 };
 
-export const deleteQuiz = (req: AuthRequest, res: Response): void => {
+export const deleteQuiz = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const quiz = learningService.deleteQuiz(getParam(req.params.id), req.user);
+  const quiz = await learningService.deleteQuiz(getParam(req.params.id), req.user);
 
   if (!quiz) {
     sendError(res, 'Тест не знайдено', HTTP_STATUS.NOT_FOUND);
@@ -262,13 +262,13 @@ export const deleteQuiz = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, quiz);
 };
 
-export const deleteEvent = (req: AuthRequest, res: Response): void => {
+export const deleteEvent = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const event = learningService.deleteEvent(getParam(req.params.id), req.user);
+  const event = await learningService.deleteEvent(getParam(req.params.id), req.user);
 
   if (!event) {
     sendError(res, 'Подію не знайдено', HTTP_STATUS.NOT_FOUND);
@@ -278,16 +278,16 @@ export const deleteEvent = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, event);
 };
 
-export const getEvents = (req: AuthRequest, res: Response): void => {
+export const getEvents = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, teacherService.getTeacherEvents(req.user));
+  sendSuccess(res, await teacherService.getTeacherEvents(req.user));
 };
 
-export const getPendingPosts = (req: AuthRequest, res: Response): void => {
+export const getPendingPosts = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user?.classId) {
     sendError(res, 'Клас не знайдено', HTTP_STATUS.NOT_FOUND);
     return;
@@ -295,7 +295,7 @@ export const getPendingPosts = (req: AuthRequest, res: Response): void => {
 
   sendSuccess(
     res,
-    postsService.getPendingPosts(req.user.classId, req.user.schoolId),
+    await postsService.getPendingPosts(req.user.classId, req.user.schoolId),
   );
 };
 
@@ -303,7 +303,7 @@ const moderateSchema = z.object({
   status: z.enum(['published', 'rejected', 'hidden']),
 });
 
-export const moderatePost = (req: AuthRequest, res: Response): void => {
+export const moderatePost = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -316,7 +316,7 @@ export const moderatePost = (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  const post = postsService.moderatePost(
+  const post = await postsService.moderatePost(
     getParam(req.params.id),
     parsed.data.status,
     req.user,
@@ -338,7 +338,7 @@ const questSchema = z.object({
   totalSteps: z.number().min(1).max(20),
 });
 
-export const createQuest = (req: AuthRequest, res: Response): void => {
+export const createQuest = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -352,7 +352,7 @@ export const createQuest = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const quest = teacherService.createQuest(req.user, parsed.data);
+    const quest = await teacherService.createQuest(req.user, parsed.data);
     sendSuccess(res, quest, HTTP_STATUS.CREATED);
   } catch {
     sendError(res, 'Не вдалося створити квест');
@@ -367,7 +367,7 @@ const eventSchema = z.object({
   materials: z.array(z.string()).optional(),
 });
 
-export const createEvent = (req: AuthRequest, res: Response): void => {
+export const createEvent = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -381,7 +381,7 @@ export const createEvent = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const event = teacherService.createEvent(req.user, parsed.data);
+    const event = await teacherService.createEvent(req.user, parsed.data);
     sendSuccess(res, event, HTTP_STATUS.CREATED);
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_RANGE') {
@@ -397,7 +397,7 @@ const publishSchema = z.object({
   materials: z.array(z.string()).default([]),
 });
 
-export const publishEventReview = (req: AuthRequest, res: Response): void => {
+export const publishEventReview = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -411,7 +411,7 @@ export const publishEventReview = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const result = teacherService.publishEventReview(
+    const result = await teacherService.publishEventReview(
       req.user,
       getParam(req.params.id),
       parsed.data,
@@ -442,9 +442,15 @@ export const publishEventReview = (req: AuthRequest, res: Response): void => {
 
 const classSchema = z.object({
   name: z.string().min(1, 'Напиши назву класу'),
+  grade: z
+    .number({ invalid_type_error: 'Обери клас від 1 до 4' })
+    .int()
+    .refine((value) => value >= 1 && value <= 4, {
+      message: 'Клас має бути від 1 до 4',
+    }),
 });
 
-export const createClass = (req: AuthRequest, res: Response): void => {
+export const createClass = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -458,7 +464,10 @@ export const createClass = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const classRoom = teacherService.createClassForTeacher(req.user, parsed.data);
+    const classRoom = await teacherService.createClassForTeacher(req.user, {
+      name: parsed.data.name,
+      grade: parsed.data.grade as 1 | 2 | 3 | 4,
+    });
     sendSuccess(res, classRoom, HTTP_STATUS.CREATED);
   } catch (error) {
     if (error instanceof Error && error.message === 'CLASS_EXISTS') {
@@ -469,13 +478,13 @@ export const createClass = (req: AuthRequest, res: Response): void => {
   }
 };
 
-export const getInvite = (req: AuthRequest, res: Response): void => {
+export const getInvite = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const invite = teacherService.getTeacherInvite(req.user);
+  const invite = await teacherService.getTeacherInvite(req.user);
 
   if (!invite) {
     sendError(res, 'Спочатку створи клас', HTTP_STATUS.NOT_FOUND);
@@ -485,14 +494,14 @@ export const getInvite = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, invite);
 };
 
-export const regenerateInvite = (req: AuthRequest, res: Response): void => {
+export const regenerateInvite = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
   try {
-    const invite = teacherService.regenerateInvite(req.user);
+    const invite = await teacherService.regenerateInvite(req.user);
     sendSuccess(res, invite);
   } catch {
     sendError(res, 'Спочатку створи клас', HTTP_STATUS.NOT_FOUND);

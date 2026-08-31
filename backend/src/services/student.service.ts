@@ -1,5 +1,17 @@
 import { XP_PER_LEVEL } from '../constants';
-import { db } from '../data/seed';
+import { prisma } from '../lib/prisma';
+import {
+  getClassStudentIds,
+  loadClassRoom,
+  mapBackpackItem,
+  mapClassEvent,
+  mapHomework,
+  mapHomeworkSubmission,
+  mapPost,
+  mapStudentAchievement,
+  mapStudentProfile,
+  mapUser,
+} from '../lib/mappers';
 import { createId, toPublicUser } from '../helpers/response';
 import {
   enrichEvent,
@@ -9,46 +21,65 @@ import {
 import { isHomeworkActive } from '../helpers/homework';
 import type { BackpackItem, StudentProfile } from '../types';
 
-export const getStudentDesk = (studentId: string) => {
-  const user = db.users.find((item) => item.id === studentId);
-  const profile = db.studentProfiles.find((item) => item.userId === studentId);
-  const classRoom = db.classes.find((item) => item.id === user?.classId);
-  const teacher = db.users.find((item) => item.id === classRoom?.teacherId);
+export const getStudentDesk = async (studentId: string) => {
+  const userRow = await prisma.user.findUnique({ where: { id: studentId } });
+  const profileRow = await prisma.studentProfile.findUnique({
+    where: { userId: studentId },
+  });
 
-  if (!user || !profile || !classRoom) {
+  if (!userRow || !profileRow || !userRow.classId) {
     return null;
   }
 
-  const todayHomework = db.homeworks
-    .filter((hw) => hw.classId === classRoom.id && isHomeworkActive(hw))
+  const user = mapUser(userRow);
+  const profile = mapStudentProfile(profileRow);
+  const classRoom = await loadClassRoom(userRow.classId);
+
+  if (!classRoom) {
+    return null;
+  }
+
+  const teacherRow = await prisma.user.findUnique({
+    where: { id: classRoom.teacherId },
+  });
+
+  const homeworks = await prisma.homework.findMany({
+    where: { classId: classRoom.id },
+  });
+  const submissions = await prisma.homeworkSubmission.findMany({
+    where: { studentId },
+  });
+  const subByHw = new Map(submissions.map((s) => [s.homeworkId, s]));
+
+  const todayHomework = homeworks
+    .map(mapHomework)
+    .filter((hw) => isHomeworkActive(hw))
     .map((hw) => {
-      const submission = db.homeworkSubmissions.find(
-        (sub) => sub.homeworkId === hw.id && sub.studentId === studentId,
-      );
+      const submission = subByHw.get(hw.id);
       return {
         ...hw,
-        status: submission?.status ?? 'new',
+        status: submission
+          ? mapHomeworkSubmission(submission).status
+          : ('new' as const),
       };
     })
     .filter((hw) => hw.status === 'new')
     .slice(0, 2);
 
-  const latestPosts = db.posts
-    .filter(
-      (post) =>
-        post.classId === classRoom.id && post.status === 'published',
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .slice(0, 3)
-    .map((post) => enrichPost(post));
+  const posts = await prisma.post.findMany({
+    where: { classId: classRoom.id, status: 'published' },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  });
+  const latestPosts = await Promise.all(posts.map((p) => enrichPost(mapPost(p))));
 
-  const nextEvent = db.events
+  const events = await prisma.classEvent.findMany({
+    where: { classId: classRoom.id },
+  });
+  const nextEventCandidates = events
+    .map(mapClassEvent)
     .filter(
       (event) =>
-        event.classId === classRoom.id &&
         new Date(eventEndsAt(event)).getTime() >= Date.now() &&
         !event.publishedPostId,
     )
@@ -56,27 +87,38 @@ export const getStudentDesk = (studentId: string) => {
       (a, b) =>
         new Date(eventStartsAt(a)).getTime() -
         new Date(eventStartsAt(b)).getTime(),
-    )
-    .map(enrichEvent)[0];
+    );
 
-  const recentAchievements = db.studentAchievements
-    .filter((item) => item.studentId === studentId)
+  const nextEvent = nextEventCandidates[0]
+    ? await enrichEvent(nextEventCandidates[0])
+    : undefined;
+
+  const studentAchs = await prisma.studentAchievement.findMany({
+    where: { studentId },
+    take: 3,
+    orderBy: { unlockedAt: 'desc' },
+  });
+  const achIds = studentAchs.map((a) => a.achievementId);
+  const achievements = achIds.length
+    ? await prisma.achievement.findMany({ where: { id: { in: achIds } } })
+    : [];
+  const achById = new Map(achievements.map((a) => [a.id, a]));
+
+  const recentAchievements = studentAchs
     .map((item) => {
-      const achievement = db.achievements.find(
-        (ach) => ach.id === item.achievementId,
-      );
+      const mapped = mapStudentAchievement(item);
+      const achievement = achById.get(item.achievementId);
       return achievement
-        ? { ...achievement, unlockedAt: item.unlockedAt }
+        ? { ...achievement, unlockedAt: mapped.unlockedAt }
         : null;
     })
-    .filter(Boolean)
-    .slice(0, 3);
+    .filter(Boolean);
 
   return {
     user: toPublicUser(user),
     profile,
     className: classRoom.name,
-    teacherName: teacher?.displayName ?? 'Учитель',
+    teacherName: teacherRow?.displayName ?? 'Учитель',
     todayHomework,
     latestPosts,
     nextEvent,
@@ -93,91 +135,144 @@ export const getStudentDesk = (studentId: string) => {
   };
 };
 
-export const getStudentProfile = (
+export const getStudentProfile = async (
   studentId: string,
-): StudentProfile | null => {
-  return db.studentProfiles.find((item) => item.userId === studentId) ?? null;
+): Promise<StudentProfile | null> => {
+  const row = await prisma.studentProfile.findUnique({
+    where: { userId: studentId },
+  });
+  return row ? mapStudentProfile(row) : null;
 };
 
-export const addXp = (
+export const addXp = async (
   studentId: string,
   amount: number,
   reason: string,
-): StudentProfile | null => {
-  const profile = db.studentProfiles.find((item) => item.userId === studentId);
-
-  if (!profile) {
-    return null;
-  }
-
-  profile.xp += amount;
-
-  while (profile.xp >= profile.xpToNextLevel) {
-    profile.xp -= profile.xpToNextLevel;
-    profile.level += 1;
-    profile.xpToNextLevel = XP_PER_LEVEL;
-  }
-
-  db.xpTransactions.unshift({
-    id: createId('xp'),
-    studentId,
-    amount,
-    reason,
-    createdAt: new Date().toISOString(),
+): Promise<StudentProfile | null> => {
+  const profileRow = await prisma.studentProfile.findUnique({
+    where: { userId: studentId },
   });
 
-  const classRoom = db.classes.find((room) =>
-    room.studentIds.includes(studentId),
-  );
-
-  if (classRoom) {
-    classRoom.goalCurrentXp = Math.min(
-      classRoom.goalTargetXp,
-      classRoom.goalCurrentXp + amount,
-    );
-  }
-
-  return profile;
-};
-
-export const completeOnboarding = (studentId: string): StudentProfile | null => {
-  const profile = db.studentProfiles.find((item) => item.userId === studentId);
-
-  if (!profile) {
+  if (!profileRow) {
     return null;
   }
 
-  profile.onboardingCompleted = true;
-  return profile;
+  let xp = profileRow.xp + amount;
+  let level = profileRow.level;
+  let xpToNextLevel = profileRow.xpToNextLevel;
+
+  while (xp >= xpToNextLevel) {
+    xp -= xpToNextLevel;
+    level += 1;
+    xpToNextLevel = XP_PER_LEVEL;
+  }
+
+  const updated = await prisma.studentProfile.update({
+    where: { userId: studentId },
+    data: { xp, level, xpToNextLevel },
+  });
+
+  await prisma.xpTransaction.create({
+    data: {
+      id: createId('xp'),
+      studentId,
+      amount,
+      reason,
+      createdAt: new Date(),
+    },
+  });
+
+  const membership = await prisma.classMembership.findFirst({
+    where: { studentId },
+  });
+
+  if (membership) {
+    const classRoom = await prisma.classRoom.findUnique({
+      where: { id: membership.classId },
+    });
+    if (classRoom) {
+      await prisma.classRoom.update({
+        where: { id: classRoom.id },
+        data: {
+          goalCurrentXp: Math.min(
+            classRoom.goalTargetXp,
+            classRoom.goalCurrentXp + amount,
+          ),
+        },
+      });
+    }
+  }
+
+  return mapStudentProfile(updated);
 };
 
-export const getBackpack = (studentId: string): BackpackItem[] => {
-  const profile = db.studentProfiles.find((item) => item.userId === studentId);
-  const unlocked = new Set(profile?.unlockedItems ?? []);
+export const completeOnboarding = async (
+  studentId: string,
+): Promise<StudentProfile | null> => {
+  const existing = await prisma.studentProfile.findUnique({
+    where: { userId: studentId },
+  });
 
-  return db.backpackItems.map((item) => ({
-    ...item,
-    unlocked: unlocked.has(item.id) || item.unlocked,
-  }));
+  if (!existing) {
+    return null;
+  }
+
+  const updated = await prisma.studentProfile.update({
+    where: { userId: studentId },
+    data: { onboardingCompleted: true },
+  });
+
+  return mapStudentProfile(updated);
 };
 
-export const getClassmates = (classId: string, schoolId: string) => {
-  const classRoom = db.classes.find(
-    (item) => item.id === classId && item.schoolId === schoolId,
+export const getBackpack = async (studentId: string): Promise<BackpackItem[]> => {
+  const profile = await prisma.studentProfile.findUnique({
+    where: { userId: studentId },
+  });
+  const unlocked = new Set(
+    ((profile?.unlockedItems as string[]) ?? []) as string[],
   );
+  const items = await prisma.backpackItem.findMany();
+
+  return items.map((item) => {
+    const mapped = mapBackpackItem(item);
+    return {
+      ...mapped,
+      unlocked: unlocked.has(item.id) || mapped.unlocked,
+    };
+  });
+};
+
+export const getClassmates = async (classId: string, schoolId: string) => {
+  const classRoom = await prisma.classRoom.findFirst({
+    where: { id: classId, schoolId },
+  });
 
   if (!classRoom) {
     return [];
   }
 
-  return classRoom.studentIds
-    .map((id) => db.users.find((user) => user.id === id))
+  const studentIds = await getClassStudentIds(classId);
+  if (studentIds.length === 0) {
+    return [];
+  }
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: studentIds } },
+  });
+  const byId = new Map(users.map((u) => [u.id, u]));
+
+  return studentIds
+    .map((id) => byId.get(id))
     .filter(Boolean)
-    .map((user) => toPublicUser(user!));
+    .map((user) => toPublicUser(mapUser(user!)));
 };
 
-const enrichPost = (post: (typeof db.posts)[number]) => {
-  const author = db.users.find((user) => user.id === post.authorId);
+export const enrichPost = async (post: ReturnType<typeof mapPost>) => {
+  const authorRow = await prisma.user.findUnique({
+    where: { id: post.authorId },
+  });
+  const author = authorRow ? mapUser(authorRow) : null;
 
   return {
     ...post,

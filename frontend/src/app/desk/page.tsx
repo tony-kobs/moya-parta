@@ -20,6 +20,7 @@ import {
   computeXpProgress,
   describeHowToEarnXp,
   describeXpProgress,
+  pickNextReward,
 } from '@/lib/xpProgress';
 import styles from './desk.module.css';
 
@@ -35,6 +36,11 @@ function DeskContent() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['desk'],
     queryFn: studentApi.getDesk,
+  });
+
+  const { data: backpack } = useQuery({
+    queryKey: ['backpack'],
+    queryFn: studentApi.getBackpack,
   });
 
   const [bannerImageFailed, setBannerImageFailed] = useState(false);
@@ -54,6 +60,7 @@ function DeskContent() {
 
   const xpProgress = computeXpProgress(data.profile.xp, data.profile.xpToNextLevel);
   const showBannerImage = !bannerImageFailed;
+  const nextReward = pickNextReward(backpack);
 
   return (
     <div className={styles.page}>
@@ -98,7 +105,11 @@ function DeskContent() {
                 hasValidData={xpProgress.hasValidData}
                 progressDescription={describeXpProgress(xpProgress)}
                 howToEarnXp={describeHowToEarnXp(data.dailyGoal)}
-                nextReward={null}
+                nextReward={
+                  nextReward
+                    ? { icon: nextReward.icon, title: nextReward.title }
+                    : null
+                }
                 inverted
               />
             </div>

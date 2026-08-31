@@ -1,3 +1,5 @@
+import type { BackpackItem } from '@/types';
+
 export interface XpProgressSummary {
   xp: number;
   xpToNextLevel: number;
@@ -54,6 +56,16 @@ export function describeXpProgress(summary: XpProgressSummary): string {
     return `Рівень завершено: ${summary.xp} із ${summary.xpToNextLevel} XP.`;
   }
   return `Прогрес рівня: ${summary.xp} із ${summary.xpToNextLevel} XP (${summary.percent}%). Залишилось ${summary.xpRemaining} XP до наступного рівня.`;
+}
+
+/** Picks the nearest still-locked reward from the student's backpack, if any. */
+export function pickNextReward(
+  items: BackpackItem[] | null | undefined,
+): BackpackItem | null {
+  if (!items || items.length === 0) {
+    return null;
+  }
+  return items.find((item) => item.category === 'reward' && !item.unlocked) ?? null;
 }
 
 /** Short explanation of how XP is earned, reusing the student's actual daily goal when known. */

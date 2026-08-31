@@ -17,6 +17,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { authApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import styles from '../../login/login.module.css';
+import pageStyles from '../join.module.css';
 
 const schema = z.object({
   displayName: z.string().min(2, 'Напиши своє імʼя'),
@@ -68,7 +69,7 @@ export default function JoinClassPage() {
 
   if (previewQuery.isLoading) {
     return (
-      <main className={styles.page}>
+      <main className={pageStyles.page}>
         <LoadingState label="Шукаємо клас..." />
       </main>
     );
@@ -76,7 +77,7 @@ export default function JoinClassPage() {
 
   if (previewQuery.isError || !previewQuery.data) {
     return (
-      <main className={styles.page}>
+      <main className={pageStyles.page}>
         <div className={styles.card}>
           <h1>Код не знайдено</h1>
           <p className={styles.lead}>Перевір код у вчителя і спробуй ще раз.</p>
@@ -110,8 +111,8 @@ export default function JoinClassPage() {
   });
 
   return (
-    <main className={styles.page}>
-      <form className={styles.card} onSubmit={onSubmit}>
+    <main className={pageStyles.page}>
+      <form className={`${styles.card} ${pageStyles.card}`} onSubmit={onSubmit}>
         <BrandMark href="/" size="lg" />
         <h1>Привіт у класі {preview.className}!</h1>
         <p className={styles.lead}>

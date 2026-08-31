@@ -114,6 +114,7 @@ export const classes: ClassRoom[] = [
     id: 'class-3b',
     schoolId: 'school-12',
     name: '3-Б',
+    grade: 3,
     teacherId: 'user-teacher',
     inviteCode: '3B-DEMO',
     studentIds: [
@@ -453,6 +454,7 @@ export const quests: Quest[] = [
     illustration: '🧭',
     xpReward: 50,
     totalSteps: 5,
+    questionSource: 'grade-math',
   },
   {
     id: 'quest-2',
@@ -851,28 +853,4 @@ export const navSeen: Record<
     board: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
     chat: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
   },
-};
-
-export const db = {
-  schools,
-  users,
-  classes,
-  studentProfiles,
-  posts,
-  homeworks,
-  homeworkSubmissions,
-  quizzes,
-  quizTemplates,
-  quizAttempts,
-  quests,
-  questProgress,
-  achievements,
-  studentAchievements,
-  events,
-  notifications,
-  xpTransactions,
-  backpackItems,
-  learningMaterials,
-  chatMessages,
-  navSeen,
 };
