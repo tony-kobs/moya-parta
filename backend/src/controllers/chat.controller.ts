@@ -10,25 +10,25 @@ const messageSchema = z.object({
   text: z.string().min(1, 'Напиши повідомлення').max(500),
 });
 
-export const getContacts = (req: AuthRequest, res: Response): void => {
+export const getContacts = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, chatService.getChatContacts(req.user));
+  sendSuccess(res, await chatService.getChatContacts(req.user));
 };
 
-export const getClassChat = (req: AuthRequest, res: Response): void => {
+export const getClassChat = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  sendSuccess(res, chatService.getClassChat(req.user));
+  sendSuccess(res, await chatService.getClassChat(req.user));
 };
 
-export const sendClassMessage = (req: AuthRequest, res: Response): void => {
+export const sendClassMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -42,20 +42,20 @@ export const sendClassMessage = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const message = chatService.sendClassMessage(req.user, parsed.data.text);
+    const message = await chatService.sendClassMessage(req.user, parsed.data.text);
     sendSuccess(res, message, HTTP_STATUS.CREATED);
   } catch {
     sendError(res, 'Не вдалося надіслати');
   }
 };
 
-export const getDirectThread = (req: AuthRequest, res: Response): void => {
+export const getDirectThread = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const thread = chatService.getDirectThread(
+  const thread = await chatService.getDirectThread(
     req.user,
     getParam(req.params.userId),
   );
@@ -68,7 +68,7 @@ export const getDirectThread = (req: AuthRequest, res: Response): void => {
   sendSuccess(res, thread);
 };
 
-export const sendDirectMessage = (req: AuthRequest, res: Response): void => {
+export const sendDirectMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Потрібно увійти', HTTP_STATUS.UNAUTHORIZED);
     return;
@@ -82,7 +82,7 @@ export const sendDirectMessage = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const message = chatService.sendDirectMessage(
+    const message = await chatService.sendDirectMessage(
       req.user,
       getParam(req.params.userId),
       parsed.data.text,

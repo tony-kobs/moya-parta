@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { HTTP_STATUS } from '../constants';
-import { db } from '../data/seed';
+import { prisma } from '../lib/prisma';
+import { mapUser } from '../lib/mappers';
 import { sendError, toPublicUser } from '../helpers/response';
 import type { AuthUser, UserRole } from '../types';
 
@@ -13,11 +14,11 @@ interface JwtPayload {
   id: string;
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   const header = req.headers.authorization;
 
   if (!header?.startsWith('Bearer ')) {
@@ -35,14 +36,14 @@ export const authMiddleware = (
 
   try {
     const payload = jwt.verify(token, secret) as JwtPayload;
-    const user = db.users.find((item) => item.id === payload.id);
+    const row = await prisma.user.findUnique({ where: { id: payload.id } });
 
-    if (!user) {
+    if (!row) {
       sendError(res, 'Сесія закінчилась. Увійди знову', HTTP_STATUS.UNAUTHORIZED);
       return;
     }
 
-    req.user = toPublicUser(user) as AuthUser;
+    req.user = toPublicUser(mapUser(row)) as AuthUser;
     next();
   } catch {
     sendError(res, 'Сесія закінчилась. Увійди знову', HTTP_STATUS.UNAUTHORIZED);

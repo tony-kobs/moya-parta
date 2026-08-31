@@ -50,7 +50,7 @@
 ```text
 moya-parta/
 ├── frontend/        Next.js (App Router), TS, CSS Modules, TanStack Query, Zustand
-├── backend/         Express + TS (GoIT: routes → controllers → services), in-memory seed
+├── backend/         Express + TS (GoIT: routes → controllers → services), Prisma + MySQL
 ├── presentation/    HTML-презентація дерева продукту для команди
 ├── render.yaml      підказка для Render (rootDir: backend)
 └── .cursor/         PROJECT_CHAIN, ORIGINAL_PROMPT, правила агента
@@ -174,7 +174,7 @@ cd frontend && npm run dev
 
 - **Frontend:** Next.js App Router, TypeScript, CSS Modules, TanStack Query, Zustand  
 - **Backend:** Express, TypeScript, Zod, JWT (структура GoIT)  
-- **Дані зараз:** in-memory seed (після рестарту API демо-дані скидаються)  
+- **Дані:** MySQL (`192.168.0.212`, БД `parta`) через Prisma; демо — `npm run prisma:seed` у `backend/`  
 
 ---
 
