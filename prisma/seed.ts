@@ -225,6 +225,7 @@ async function seedLearning() {
       illustration: quest.illustration,
       xpReward: quest.xpReward,
       totalSteps: quest.totalSteps,
+      questions: quest.questions ? asJson(quest.questions) : undefined,
     };
 
     await prisma.quest.upsert({
@@ -431,6 +432,93 @@ async function main() {
 
   if (!demoTeacher?.classId) {
     throw new Error('Demo teacher was not linked to a class');
+  }
+
+  const classId = demoTeacher.classId;
+
+  await prisma.periodicTask.upsert({
+    where: { id: 'ptask-daily-demo' },
+    create: {
+      id: 'ptask-daily-demo',
+      classId,
+      cadence: 'daily',
+      title: 'Прочитай 10 хвилин',
+      description: 'Будь-яка книга або оповідання — і відміть виконання.',
+      xpReward: 15,
+      active: true,
+      createdBy: demoTeacher.id,
+    },
+    update: {
+      title: 'Прочитай 10 хвилин',
+      description: 'Будь-яка книга або оповідання — і відміть виконання.',
+      xpReward: 15,
+      active: true,
+    },
+  });
+
+  await prisma.periodicTask.upsert({
+    where: { id: 'ptask-weekly-demo' },
+    create: {
+      id: 'ptask-weekly-demo',
+      classId,
+      cadence: 'weekly',
+      title: 'Допоможи однокласнику',
+      description: 'Зроби добру справу в класі цього тижня.',
+      xpReward: 40,
+      active: true,
+      createdBy: demoTeacher.id,
+    },
+    update: {
+      title: 'Допоможи однокласнику',
+      description: 'Зроби добру справу в класі цього тижня.',
+      xpReward: 40,
+      active: true,
+    },
+  });
+
+  const demoSlots = [
+    {
+      id: 'slot-mon-1',
+      dayOfWeek: 1,
+      period: 1,
+      startsAtTime: '08:30',
+      endsAtTime: '09:15',
+      subject: 'Математика',
+      room: '12',
+    },
+    {
+      id: 'slot-mon-2',
+      dayOfWeek: 1,
+      period: 2,
+      startsAtTime: '09:25',
+      endsAtTime: '10:10',
+      subject: 'Українська',
+      room: '12',
+    },
+    {
+      id: 'slot-tue-1',
+      dayOfWeek: 2,
+      period: 1,
+      startsAtTime: '08:30',
+      endsAtTime: '09:15',
+      subject: 'Читання',
+      room: '12',
+    },
+  ];
+
+  for (const slot of demoSlots) {
+    await prisma.lessonSlot.upsert({
+      where: { id: slot.id },
+      create: { ...slot, classId },
+      update: {
+        dayOfWeek: slot.dayOfWeek,
+        period: slot.period,
+        startsAtTime: slot.startsAtTime,
+        endsAtTime: slot.endsAtTime,
+        subject: slot.subject,
+        room: slot.room,
+      },
+    });
   }
 
   console.log(

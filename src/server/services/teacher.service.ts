@@ -21,6 +21,7 @@ const emptyDashboard = (greetingName: string) => ({
     pendingPosts: 0,
   },
   homeworks: [],
+  endedHomeworks: [],
   checkingWorks: [],
   goal: null,
   recentPosts: [],
@@ -95,7 +96,8 @@ export const getTeacherDashboard = async (teacher: AuthUser) => {
       nextEventEndsAt: nextEvent ? eventEndsAt(nextEvent) : null,
       pendingPosts,
     },
-    homeworks: homeworkRows.map(toHomework),
+    homeworks: homeworkRows.map(toHomework).filter((hw) => !hw.ended),
+    endedHomeworks: homeworkRows.map(toHomework).filter((hw) => hw.ended),
     checkingWorks: checkingWorkRows.map((sub) => ({
       ...toSubmission(sub),
       studentName: sub.User.displayName,

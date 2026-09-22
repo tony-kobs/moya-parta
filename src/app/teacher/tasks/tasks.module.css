@@ -245,3 +245,14 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+
+.formCard {
+  display: grid;
+  gap: var(--space-3, 12px);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

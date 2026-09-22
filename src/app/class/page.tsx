@@ -11,15 +11,16 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PostCard } from '@/components/posts/PostCard';
-import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { DailyContextCard } from '@/components/class/DailyContextCard';
 import { studentApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import { formatEventRange } from '@/lib/format';
 import { selectDailyContextEntries } from '@/lib/dailyContext';
-import type { ClassEvent, Quest } from '@/types';
+import type { ClassEvent, LessonSlot, Quest } from '@/types';
 import styles from './class.module.css';
+
+const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'];
 
 export default function ClassPage() {
   return (
@@ -33,6 +34,7 @@ function ClassContent() {
   const user = useAuthStore((state) => state.user);
   const showToast = useUiStore((state) => state.showToast);
   const queryClient = useQueryClient();
+  const [boardTab, setBoardTab] = useState<'feed' | 'schedule'>('feed');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['class'],
@@ -44,12 +46,17 @@ function ClassContent() {
     queryFn: studentApi.getLearning,
   });
 
+  const { data: schedule } = useQuery({
+    queryKey: ['student-schedule'],
+    queryFn: studentApi.getSchedule,
+  });
+
   const reactMutation = useMutation({
     mutationFn: ({ postId, reaction }: { postId: string; reaction: string }) =>
       studentApi.react(postId, reaction),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['class'] });
-      showToast('Ти підтримав друга!');
+      showToast('Ти підтримав!');
     },
   });
 
@@ -138,8 +145,6 @@ function ClassContent() {
       </div>
 
       <div className={styles.stack}>
-        <ComposePostCard />
-
         <CompactPanel
           title="Активні квести"
           count={activeQuests.length}
@@ -171,27 +176,97 @@ function ClassContent() {
         <section className={styles.board}>
           <div className={styles.sectionHead}>
             <h2>Дошка класу</h2>
-          </div>
-          {data.board.length === 0 ? (
-            <EmptyState
-              title="Дошка ще порожня"
-              description="Можеш стати першим, хто щось покаже класу."
-            />
-          ) : (
-            <div className={styles.boardList}>
-              {data.board.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onReact={(reaction) =>
-                    reactMutation.mutate({ postId: post.id, reaction })
-                  }
-                />
-              ))}
+            <div className={styles.boardTabs}>
+              <button
+                type="button"
+                className={boardTab === 'feed' ? styles.boardTabActive : ''}
+                onClick={() => setBoardTab('feed')}
+              >
+                Стрічка
+              </button>
+              <button
+                type="button"
+                className={boardTab === 'schedule' ? styles.boardTabActive : ''}
+                onClick={() => setBoardTab('schedule')}
+              >
+                Розклад
+              </button>
             </div>
+          </div>
+          {boardTab === 'feed' ? (
+            data.board.length === 0 ? (
+              <EmptyState
+                title="Дошка ще порожня"
+                description="Учитель скоро опублікує новини для класу."
+              />
+            ) : (
+              <div className={styles.boardList}>
+                {data.board.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onReact={(reaction) =>
+                      reactMutation.mutate({ postId: post.id, reaction })
+                    }
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            <ScheduleView slots={schedule ?? []} />
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function ScheduleView({ slots }: { slots: LessonSlot[] }) {
+  const byDay = new Map<number, LessonSlot[]>();
+  for (let day = 1; day <= 5; day += 1) {
+    byDay.set(day, []);
+  }
+  for (const slot of slots) {
+    byDay.get(slot.dayOfWeek)?.push(slot);
+  }
+  for (const daySlots of byDay.values()) {
+    daySlots.sort((a, b) => a.period - b.period);
+  }
+
+  if (slots.length === 0) {
+    return (
+      <EmptyState
+        title="Розкладу ще немає"
+        description="Учитель додасть уроки на дошці класу."
+      />
+    );
+  }
+
+  return (
+    <div className={styles.scheduleGrid}>
+      {DAY_LABELS.map((label, index) => {
+        const daySlots = byDay.get(index + 1) ?? [];
+        return (
+          <div key={label} className={styles.dayCol}>
+            <h3>{label}</h3>
+            {daySlots.length === 0 ? (
+              <p className={styles.dayEmpty}>—</p>
+            ) : (
+              daySlots.map((slot) => (
+                <div key={slot.id} className={styles.slotCard}>
+                  <strong>
+                    {slot.period}. {slot.subject}
+                  </strong>
+                  <span>
+                    {slot.startsAtTime}–{slot.endsAtTime}
+                    {slot.room ? ` · ${slot.room}` : ''}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
