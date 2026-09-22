@@ -2,7 +2,9 @@ import { z } from 'zod';
 import { HTTP_STATUS } from '@/server/constants';
 import { fail, getAuthUser, handle, ok, readJson, requireRoles } from '@/server/http';
 import * as learningService from '@/server/services/learning.service';
+import * as periodicService from '@/server/services/periodic.service';
 import * as postsService from '@/server/services/posts.service';
+import * as scheduleService from '@/server/services/schedule.service';
 import * as teacherService from '@/server/services/teacher.service';
 
 export const runtime = 'nodejs';
@@ -11,14 +13,20 @@ export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ path?: string[] }> };
 const keyOf = (path: string[]) => path.join('/');
 
-const homeworkSchema = z.object({
-  subject: z.enum(['math', 'ukrainian', 'reading', 'science', 'art', 'other']),
-  title: z.string().min(1, 'Напиши назву завдання'),
-  description: z.string().min(1, 'Додай короткий опис'),
-  dueDate: z.string().min(1),
-  xpReward: z.number().min(5).max(100),
-  linkedQuizId: z.string().optional(),
-});
+const homeworkSchema = z
+  .object({
+    subject: z.enum(['math', 'ukrainian', 'reading', 'science', 'art', 'other']),
+    title: z.string().min(1, 'Напиши назву завдання'),
+    description: z.string().min(1, 'Додай короткий опис'),
+    startsAt: z.string().min(1),
+    endsAt: z.string().min(1),
+    xpReward: z.number().min(5).max(100),
+    linkedQuizId: z.string().optional(),
+  })
+  .refine((values) => new Date(values.endsAt) > new Date(values.startsAt), {
+    message: 'Кінець має бути пізніше за початок',
+    path: ['endsAt'],
+  });
 
 const reviewSchema = z.object({
   decision: z.enum(['accept', 'revise', 'redo_test']),
@@ -44,6 +52,19 @@ const moderateSchema = z.object({
   status: z.enum(['published', 'rejected', 'hidden']),
 });
 
+const boardPostUpdateSchema = z.object({
+  text: z.string().min(1).optional(),
+  imageEmoji: z.string().optional(),
+  pinned: z.boolean().optional(),
+  status: z.enum(['published', 'rejected', 'hidden']).optional(),
+});
+
+const createBoardPostSchema = z.object({
+  text: z.string().min(1, 'Напиши текст публікації'),
+  imageEmoji: z.string().optional(),
+  category: z.string().optional(),
+});
+
 const questSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
@@ -67,6 +88,23 @@ const publishSchema = z.object({
 
 const classSchema = z.object({
   name: z.string().min(1, 'Напиши назву класу'),
+});
+
+const lessonSlotSchema = z.object({
+  dayOfWeek: z.number().int().min(1).max(5),
+  period: z.number().int().min(1).max(10),
+  startsAtTime: z.string().min(1),
+  endsAtTime: z.string().min(1),
+  subject: z.string().min(1),
+  room: z.string().optional(),
+  teacherNote: z.string().optional(),
+});
+
+const periodicTaskSchema = z.object({
+  cadence: z.enum(['daily', 'weekly']),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  xpReward: z.number().min(5).max(100),
 });
 
 const teacherUser = async (req: Request) => {
@@ -103,11 +141,19 @@ export async function GET(req: Request, ctx: Ctx) {
       return ok(await teacherService.getTeacherEvents(user));
     }
 
-    if (key === 'moderation/posts') {
+    if (key === 'moderation/posts' || key === 'board/posts') {
+      return ok(await postsService.getTeacherBoardPosts(user));
+    }
+
+    if (key === 'schedule') {
       if (!user.classId) {
         return fail('Клас не знайдено', HTTP_STATUS.NOT_FOUND);
       }
-      return ok(await postsService.getPendingPosts(user.classId, user.schoolId));
+      return ok(await scheduleService.getSchedule(user.classId));
+    }
+
+    if (key === 'periodic-tasks') {
+      return ok(await periodicService.listTeacherPeriodicTasks(user));
     }
 
     if (key === 'invite') {
@@ -116,6 +162,14 @@ export async function GET(req: Request, ctx: Ctx) {
         return fail('Спочатку створи клас', HTTP_STATUS.NOT_FOUND);
       }
       return ok(invite);
+    }
+
+    if (path[0] === 'homework' && path[2] === 'analytics' && path[1]) {
+      const analytics = await learningService.getHomeworkAnalytics(path[1], user);
+      if (!analytics) {
+        return fail('Завдання не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(analytics);
     }
 
     return fail('Такої сторінки немає', HTTP_STATUS.NOT_FOUND);
@@ -140,7 +194,10 @@ export async function POST(req: Request, ctx: Ctx) {
           await learningService.createHomework(user, parsed.data),
           HTTP_STATUS.CREATED,
         );
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message === 'INVALID_RANGE') {
+          return fail('Кінець має бути пізніше за початок');
+        }
         return fail('Не вдалося створити завдання');
       }
     }
@@ -240,6 +297,51 @@ export async function POST(req: Request, ctx: Ctx) {
       return ok(post);
     }
 
+    if (key === 'board/posts') {
+      const parsed = createBoardPostSchema.safeParse(body);
+      if (!parsed.success) {
+        return fail(parsed.error.issues[0]?.message ?? 'Перевір дані');
+      }
+      try {
+        return ok(await postsService.createPost(user, parsed.data), HTTP_STATUS.CREATED);
+      } catch {
+        return fail('Не вдалося опублікувати');
+      }
+    }
+
+    if (key === 'schedule') {
+      const parsed = lessonSlotSchema.safeParse(body);
+      if (!parsed.success) {
+        return fail(parsed.error.issues[0]?.message ?? 'Перевір дані уроку');
+      }
+      try {
+        return ok(
+          await scheduleService.createLessonSlot(user, parsed.data),
+          HTTP_STATUS.CREATED,
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === 'INVALID_DAY') {
+          return fail('День має бути з понеділка по пʼятницю');
+        }
+        return fail('Не вдалося додати урок');
+      }
+    }
+
+    if (key === 'periodic-tasks') {
+      const parsed = periodicTaskSchema.safeParse(body);
+      if (!parsed.success) {
+        return fail(parsed.error.issues[0]?.message ?? 'Перевір дані');
+      }
+      try {
+        return ok(
+          await periodicService.createPeriodicTask(user, parsed.data),
+          HTTP_STATUS.CREATED,
+        );
+      } catch {
+        return fail('Не вдалося створити завдання');
+      }
+    }
+
     if (key === 'quests') {
       const parsed = questSchema.safeParse(body);
       if (!parsed.success) {
@@ -282,6 +384,60 @@ export async function POST(req: Request, ctx: Ctx) {
   });
 }
 
+export async function PATCH(req: Request, ctx: Ctx) {
+  const path = (await ctx.params).path ?? [];
+  const body = await readJson(req);
+
+  return handle(async () => {
+    const user = await teacherUser(req);
+
+    if (path[0] === 'board' && path[1] === 'posts' && path[2]) {
+      const parsed = boardPostUpdateSchema.safeParse(body);
+      if (!parsed.success) {
+        return fail('Перевір дані');
+      }
+      const post = await postsService.updateTeacherPost(path[2], user, parsed.data);
+      if (!post) {
+        return fail('Публікацію не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(post);
+    }
+
+    if (path[0] === 'schedule' && path[1]) {
+      const parsed = lessonSlotSchema.partial().safeParse(body);
+      if (!parsed.success) {
+        return fail('Перевір дані уроку');
+      }
+      const slot = await scheduleService.updateLessonSlot(path[1], user, parsed.data);
+      if (!slot) {
+        return fail('Урок не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(slot);
+    }
+
+    if (path[0] === 'periodic-tasks' && path[1]) {
+      const parsed = z
+        .object({
+          title: z.string().min(1).optional(),
+          description: z.string().min(1).optional(),
+          xpReward: z.number().min(5).max(100).optional(),
+          active: z.boolean().optional(),
+        })
+        .safeParse(body);
+      if (!parsed.success) {
+        return fail('Перевір дані');
+      }
+      const task = await periodicService.updatePeriodicTask(path[1], user, parsed.data);
+      if (!task) {
+        return fail('Завдання не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(task);
+    }
+
+    return fail('Такої сторінки немає', HTTP_STATUS.NOT_FOUND);
+  });
+}
+
 export async function DELETE(req: Request, ctx: Ctx) {
   const path = (await ctx.params).path ?? [];
 
@@ -310,6 +466,30 @@ export async function DELETE(req: Request, ctx: Ctx) {
         return fail('Подію не знайдено', HTTP_STATUS.NOT_FOUND);
       }
       return ok(event);
+    }
+
+    if (path[0] === 'board' && path[1] === 'posts' && path[2]) {
+      const post = await postsService.deleteTeacherPost(path[2], user);
+      if (!post) {
+        return fail('Публікацію не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(post);
+    }
+
+    if (path[0] === 'schedule' && path[1]) {
+      const slot = await scheduleService.deleteLessonSlot(path[1], user);
+      if (!slot) {
+        return fail('Урок не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(slot);
+    }
+
+    if (path[0] === 'periodic-tasks' && path[1]) {
+      const task = await periodicService.deletePeriodicTask(path[1], user);
+      if (!task) {
+        return fail('Завдання не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(task);
     }
 
     return fail('Такої сторінки немає', HTTP_STATUS.NOT_FOUND);

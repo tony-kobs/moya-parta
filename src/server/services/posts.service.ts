@@ -39,14 +39,53 @@ const enrichPost = (
   ),
 });
 
+const sortBoard = <T extends { pinned?: boolean; createdAt: string }>(posts: T[]) =>
+  [...posts].sort((a, b) => {
+    if (Boolean(a.pinned) !== Boolean(b.pinned)) {
+      return a.pinned ? -1 : 1;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+/** Класова дошка — лише пости вчителя */
 export const getClassBoard = async (classId: string, schoolId: string) => {
+  const classRoom = await prisma.classRoom.findUnique({ where: { id: classId } });
+  if (!classRoom || classRoom.schoolId !== schoolId) {
+    return [];
+  }
+
   const rows = await prisma.post.findMany({
-    where: { classId, schoolId, status: 'published' },
-    orderBy: { createdAt: 'desc' },
+    where: {
+      classId,
+      schoolId,
+      status: 'published',
+      authorId: classRoom.teacherId,
+    },
+    orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
     include: { User: true },
   });
 
-  return rows.map((row) => enrichPost(toPost(row), row.User));
+  return sortBoard(rows.map((row) => enrichPost(toPost(row), row.User)));
+};
+
+/** Усі пости класу для адміна вчителя (включно з прихованими) */
+export const getTeacherBoardPosts = async (teacher: AuthUser) => {
+  if (!teacher.classId) {
+    return [];
+  }
+
+  const rows = await prisma.post.findMany({
+    where: {
+      classId: teacher.classId,
+      schoolId: teacher.schoolId,
+      authorId: teacher.id,
+      status: { not: 'rejected' },
+    },
+    orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
+    include: { User: true },
+  });
+
+  return sortBoard(rows.map((row) => enrichPost(toPost(row), row.User)));
 };
 
 export const getMyPosts = async (userId: string) => {
@@ -67,6 +106,11 @@ export const createPost = async (
     throw new Error('NO_CLASS');
   }
 
+  // Учні — лише особиста дошка; класова стрічка — тільки вчитель
+  if (user.role !== 'teacher' && user.role !== 'student') {
+    throw new Error('FORBIDDEN');
+  }
+
   const row = await prisma.post.create({
     data: {
       id: createId('post'),
@@ -77,12 +121,66 @@ export const createPost = async (
       imageEmoji: payload.imageEmoji,
       category: payload.category,
       status: 'published',
+      pinned: false,
       reactions: {},
     },
     include: { User: true },
   });
 
   return enrichPost(toPost(row), row.User);
+};
+
+export const updateTeacherPost = async (
+  postId: string,
+  teacher: AuthUser,
+  payload: {
+    text?: string;
+    imageEmoji?: string;
+    pinned?: boolean;
+    status?: PostStatus;
+  },
+) => {
+  const row = await prisma.post.findFirst({
+    where: {
+      id: postId,
+      classId: teacher.classId ?? '',
+      authorId: teacher.id,
+    },
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  const updated = await prisma.post.update({
+    where: { id: postId },
+    data: {
+      ...(payload.text !== undefined ? { text: payload.text.trim() } : {}),
+      ...(payload.imageEmoji !== undefined ? { imageEmoji: payload.imageEmoji } : {}),
+      ...(payload.pinned !== undefined ? { pinned: payload.pinned } : {}),
+      ...(payload.status !== undefined ? { status: payload.status } : {}),
+    },
+    include: { User: true },
+  });
+
+  return enrichPost(toPost(updated), updated.User);
+};
+
+export const deleteTeacherPost = async (postId: string, teacher: AuthUser) => {
+  const row = await prisma.post.findFirst({
+    where: {
+      id: postId,
+      classId: teacher.classId ?? '',
+      authorId: teacher.id,
+    },
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  await prisma.post.delete({ where: { id: postId } });
+  return enrichPost(toPost(row), null);
 };
 
 export const reactToPost = async (
@@ -161,15 +259,6 @@ export const moderatePost = async (
     include: { User: true },
   });
 
-  if (status === 'published') {
-    await notify({
-      userId: updated.authorId,
-      title: 'Твою роботу показали!',
-      body: 'Учитель відкрив твою публікацію для класу',
-      type: 'moderation',
-    });
-  }
-
   return enrichPost(toPost(updated), updated.User);
 };
 
@@ -208,7 +297,13 @@ export const getClassOverview = async (classId: string, schoolId: string) => {
     students,
     board,
     events,
-    quests: questRows.map(toQuest),
+    quests: questRows.map((row) => {
+      const quest = toQuest(row);
+      return {
+        ...quest,
+        questions: (quest.questions ?? []).map(({ correctIndex: _c, ...rest }) => rest),
+      };
+    }),
     goal: {
       title: classRoom.goalTitle,
       current: classRoom.goalCurrentXp,

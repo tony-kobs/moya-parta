@@ -2,7 +2,9 @@ import { z } from 'zod';
 import { HTTP_STATUS } from '@/server/constants';
 import { fail, getAuthUser, handle, ok, readJson, requireRoles } from '@/server/http';
 import * as learningService from '@/server/services/learning.service';
+import * as periodicService from '@/server/services/periodic.service';
 import * as postsService from '@/server/services/posts.service';
+import * as scheduleService from '@/server/services/schedule.service';
 import * as studentService from '@/server/services/student.service';
 
 export const runtime = 'nodejs';
@@ -87,6 +89,15 @@ export async function GET(req: Request, ctx: Ctx) {
       });
     }
 
+    if (path[0] === 'quests' && path[1] && path.length === 2) {
+      requireRoles(user, 'student');
+      const quest = await learningService.getQuestForStudent(path[1], user.id);
+      if (!quest) {
+        return fail('Квест не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(quest);
+    }
+
     if (key === 'achievements') {
       requireRoles(user, 'student');
       return ok(await learningService.getAchievementsForStudent(user.id));
@@ -98,6 +109,22 @@ export async function GET(req: Request, ctx: Ctx) {
         return fail('Клас не знайдено', HTTP_STATUS.NOT_FOUND);
       }
       return ok(await learningService.getEvents(user.classId));
+    }
+
+    if (key === 'schedule') {
+      requireRoles(user, 'student', 'teacher');
+      if (!user.classId) {
+        return fail('Клас не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(await scheduleService.getSchedule(user.classId));
+    }
+
+    if (key === 'periodic-tasks') {
+      requireRoles(user, 'student');
+      if (!user.classId) {
+        return fail('Клас не знайдено', HTTP_STATUS.NOT_FOUND);
+      }
+      return ok(await periodicService.getStudentPeriodicTasks(user.id, user.classId));
     }
 
     return fail('Такої сторінки немає', HTTP_STATUS.NOT_FOUND);
@@ -190,6 +217,39 @@ export async function POST(req: Request, ctx: Ctx) {
       return ok(result);
     }
 
+    if (path[0] === 'quests' && path[2] === 'answer' && path[1]) {
+      requireRoles(user, 'student');
+      const parsed = z
+        .object({
+          stepIndex: z.number().int().min(0),
+          optionIndex: z.number().int().min(0),
+        })
+        .safeParse(body);
+      if (!parsed.success) {
+        return fail('Обери відповідь');
+      }
+      try {
+        const result = await learningService.answerQuest(
+          path[1],
+          user.id,
+          parsed.data.stepIndex,
+          parsed.data.optionIndex,
+        );
+        if (!result) {
+          return fail('Квест не знайдено', HTTP_STATUS.NOT_FOUND);
+        }
+        return ok(result);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'WRONG_STEP') {
+          return fail('Спочатку пройди попередній крок');
+        }
+        if (error instanceof Error && error.message === 'INVALID_STEP') {
+          return fail('Цього кроку немає');
+        }
+        return fail('Не вдалося перевірити відповідь');
+      }
+    }
+
     if (path[0] === 'events' && path[2] === 'join' && path[1]) {
       requireRoles(user, 'student');
       try {
@@ -203,6 +263,22 @@ export async function POST(req: Request, ctx: Ctx) {
           return fail('Подія вже завершилась');
         }
         return fail('Не вдалося приєднатися');
+      }
+    }
+
+    if (path[0] === 'periodic-tasks' && path[2] === 'complete' && path[1]) {
+      requireRoles(user, 'student');
+      try {
+        const result = await periodicService.completePeriodicTask(path[1], user.id);
+        if (!result) {
+          return fail('Завдання не знайдено', HTTP_STATUS.NOT_FOUND);
+        }
+        return ok(result);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+          return fail('Це завдання не з твого класу', HTTP_STATUS.FORBIDDEN);
+        }
+        return fail('Не вдалося виконати');
       }
     }
 

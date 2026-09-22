@@ -23,7 +23,7 @@ import {
 } from '@/types';
 import styles from './tasks.module.css';
 
-type Tab = 'homework' | 'tests' | 'review';
+type Tab = 'homework' | 'tests' | 'review' | 'periodic';
 
 function defaultHomeworkWindow() {
   const now = Date.now();
@@ -278,6 +278,7 @@ function TasksContent() {
             ['homework', 'Завдання'],
             ['tests', 'Тести'],
             ['review', 'Перевірка'],
+            ['periodic', 'Щодня / тиждень'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -604,6 +605,153 @@ function TasksContent() {
           )}
         </section>
       ) : null}
+
+      {tab === 'periodic' ? <PeriodicTasksPanel /> : null}
+    </div>
+  );
+}
+
+function PeriodicTasksPanel() {
+  const showToast = useUiStore((state) => state.showToast);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['teacher-periodic'],
+    queryFn: teacherApi.getPeriodicTasks,
+  });
+
+  const form = useForm<{
+    cadence: 'daily' | 'weekly';
+    title: string;
+    description: string;
+    xpReward: number;
+  }>({
+    defaultValues: {
+      cadence: 'daily',
+      title: '',
+      description: '',
+      xpReward: 15,
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: teacherApi.createPeriodicTask,
+    onSuccess: () => {
+      form.reset({ cadence: 'daily', title: '', description: '', xpReward: 15 });
+      void queryClient.invalidateQueries({ queryKey: ['teacher-periodic'] });
+      showToast('Періодичне завдання додано');
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : 'Помилка', 'error');
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      teacherApi.updatePeriodicTask(id, { active }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['teacher-periodic'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: teacherApi.deletePeriodicTask,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['teacher-periodic'] });
+      showToast('Видалено');
+    },
+  });
+
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  return (
+    <div className={styles.stack}>
+      <Card className={styles.formCard}>
+        <h2>Нове щоденне / щотижневе</h2>
+        <form
+          className={styles.form}
+          onSubmit={form.handleSubmit((values) =>
+            createMutation.mutate({
+              ...values,
+              xpReward: Number(values.xpReward),
+            }),
+          )}
+        >
+          <label>
+            Тип
+            <select {...form.register('cadence')}>
+              <option value="daily">Щоденне</option>
+              <option value="weekly">Щотижневе</option>
+            </select>
+          </label>
+          <label>
+            Назва
+            <input type="text" {...form.register('title', { required: true })} />
+          </label>
+          <label>
+            Опис
+            <textarea rows={2} {...form.register('description', { required: true })} />
+          </label>
+          <label>
+            XP
+            <input
+              type="number"
+              min={5}
+              max={100}
+              {...form.register('xpReward', { valueAsNumber: true })}
+            />
+          </label>
+          <Button type="submit" disabled={createMutation.isPending}>
+            Додати
+          </Button>
+        </form>
+      </Card>
+
+      <section className={styles.section}>
+        {(data?.length ?? 0) === 0 ? (
+          <EmptyState
+            title="Ще немає"
+            description="Додай щоденне або щотижневе завдання для учнів."
+          />
+        ) : (
+          data?.map((task) => (
+            <Card key={task.id} className={styles.quizCard}>
+              <div>
+                <Badge tone="primary">
+                  {task.cadence === 'daily' ? 'Щодня' : 'Щотижня'}
+                  {!task.active ? ' · вимкнено' : ''}
+                </Badge>
+                <h3>{task.title}</h3>
+                <p>
+                  {task.description} · +{task.xpReward} XP
+                </p>
+              </div>
+              <div className={styles.rowActions}>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    toggleMutation.mutate({ id: task.id, active: !task.active })
+                  }
+                >
+                  {task.active ? 'Вимкнути' : 'Увімкнути'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (confirm('Видалити?')) {
+                      deleteMutation.mutate(task.id);
+                    }
+                  }}
+                >
+                  Видалити
+                </Button>
+              </div>
+            </Card>
+          ))
+        )}
+      </section>
     </div>
   );
 }

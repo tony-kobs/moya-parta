@@ -66,7 +66,9 @@ export interface Post {
   imageEmoji?: string;
   category?: string;
   status: PostStatus;
+  pinned?: boolean;
   createdAt: string;
+  updatedAt?: string;
   reactions: Record<string, string[]>;
 }
 
@@ -77,9 +79,12 @@ export interface Homework {
   title: string;
   description: string;
   dueDate: string;
+  startsAt?: string;
+  endsAt?: string;
   xpReward: number;
   createdBy: string;
   linkedQuizId?: string;
+  ended?: boolean;
 }
 
 export interface HomeworkSubmission {
@@ -139,6 +144,7 @@ export interface Quest {
   illustration: string;
   xpReward: number;
   totalSteps: number;
+  questions?: QuizQuestion[];
 }
 
 export interface QuestProgress {

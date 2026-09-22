@@ -50,7 +50,7 @@ export function ComposePostCard({
     onSuccess: () => {
       reset();
       setSelectedEmoji('🎨');
-      showToast('Показано класу!');
+      showToast('Збережено на твоїй дошці');
       invalidateKeys.forEach((queryKey) => {
         void queryClient.invalidateQueries({ queryKey });
       });
@@ -65,7 +65,7 @@ export function ComposePostCard({
       <Card className={styles.card}>
       <div className={styles.head}>
         <h2>Що в тебе нового?</h2>
-        <p className={styles.hint}>Чим хочеш поділитись з класом?</p>
+        <p className={styles.hint}>Це твоя особиста дошка — клас її не бачить.</p>
       </div>
 
       <form
@@ -97,7 +97,7 @@ export function ComposePostCard({
         </div>
 
         <Button type="submit" fullWidth disabled={createMutation.isPending}>
-          Показати класу
+          Зберегти на моїй дошці
         </Button>
       </form>
       </Card>

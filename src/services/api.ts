@@ -8,7 +8,9 @@ import type {
   Grade,
   Homework,
   HomeworkAnalytics,
+  LessonSlot,
   NotificationItem,
+  PeriodicTask,
   Post,
   Quest,
   Quiz,
@@ -154,6 +156,16 @@ export const studentApi = {
   getEvents: () => apiRequest<ClassEvent[]>('/student/events'),
   joinEvent: (id: string) =>
     apiRequest<ClassEvent>(`/student/events/${id}/join`, { method: 'POST' }),
+  getSchedule: () => apiRequest<LessonSlot[]>('/student/schedule'),
+  getPeriodicTasks: () => apiRequest<PeriodicTask[]>('/student/periodic-tasks'),
+  completePeriodicTask: (id: string) =>
+    apiRequest<{
+      task: PeriodicTask;
+      periodKey: string;
+      alreadyCompleted: boolean;
+      xpEarned: number;
+      profile: StudentProfile | null;
+    }>(`/student/periodic-tasks/${id}/complete`, { method: 'POST' }),
 };
 
 export const teacherApi = {
@@ -239,11 +251,85 @@ export const teacherApi = {
     }),
   deleteQuiz: (id: string) =>
     apiRequest<Quiz>(`/teacher/quizzes/${id}`, { method: 'DELETE' }),
-  getPendingPosts: () => apiRequest<Post[]>('/teacher/moderation/posts'),
+  getPendingPosts: () => apiRequest<Post[]>('/teacher/board/posts'),
   moderatePost: (id: string, status: 'published' | 'rejected' | 'hidden') =>
     apiRequest<Post>(`/teacher/moderation/posts/${id}`, {
       method: 'POST',
       body: JSON.stringify({ status }),
+    }),
+  getBoardPosts: () => apiRequest<Post[]>('/teacher/board/posts'),
+  createBoardPost: (payload: {
+    text: string;
+    imageEmoji?: string;
+    category?: string;
+  }) =>
+    apiRequest<Post>('/teacher/board/posts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateBoardPost: (
+    id: string,
+    payload: {
+      text?: string;
+      imageEmoji?: string;
+      pinned?: boolean;
+      status?: 'published' | 'rejected' | 'hidden';
+    },
+  ) =>
+    apiRequest<Post>(`/teacher/board/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  deleteBoardPost: (id: string) =>
+    apiRequest<Post>(`/teacher/board/posts/${id}`, { method: 'DELETE' }),
+  getSchedule: () => apiRequest<LessonSlot[]>('/teacher/schedule'),
+  createLessonSlot: (payload: {
+    dayOfWeek: number;
+    period: number;
+    startsAtTime: string;
+    endsAtTime: string;
+    subject: string;
+    room?: string;
+    teacherNote?: string;
+  }) =>
+    apiRequest<LessonSlot>('/teacher/schedule', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateLessonSlot: (id: string, payload: Partial<LessonSlot>) =>
+    apiRequest<LessonSlot>(`/teacher/schedule/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  deleteLessonSlot: (id: string) =>
+    apiRequest<LessonSlot>(`/teacher/schedule/${id}`, { method: 'DELETE' }),
+  getPeriodicTasks: () => apiRequest<PeriodicTask[]>('/teacher/periodic-tasks'),
+  createPeriodicTask: (payload: {
+    cadence: 'daily' | 'weekly';
+    title: string;
+    description: string;
+    xpReward: number;
+  }) =>
+    apiRequest<PeriodicTask>('/teacher/periodic-tasks', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updatePeriodicTask: (
+    id: string,
+    payload: Partial<{
+      title: string;
+      description: string;
+      xpReward: number;
+      active: boolean;
+    }>,
+  ) =>
+    apiRequest<PeriodicTask>(`/teacher/periodic-tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  deletePeriodicTask: (id: string) =>
+    apiRequest<PeriodicTask>(`/teacher/periodic-tasks/${id}`, {
+      method: 'DELETE',
     }),
   createQuest: (payload: {
     title: string;

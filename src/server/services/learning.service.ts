@@ -67,6 +67,7 @@ export const getLearningForStudent = async (
     const progress = progressByQuest.get(quest.id);
     return {
       ...quest,
+      questions: (quest.questions ?? []).map(({ correctIndex: _c, ...rest }) => rest),
       currentStep: progress?.currentStep ?? 0,
       completed: progress?.completed ?? false,
     };
@@ -358,13 +359,31 @@ export const getEvents = async (classId: string) => {
 
 export const createHomework = async (
   teacher: AuthUser,
-  payload: Omit<Homework, 'id' | 'classId' | 'createdBy'>,
+  payload: {
+    subject: Homework['subject'];
+    title: string;
+    description: string;
+    startsAt: string;
+    endsAt: string;
+    xpReward: number;
+    linkedQuizId?: string;
+  },
 ) => {
   if (!teacher.classId) {
     throw new Error('NO_CLASS');
   }
 
-  const dueDate = new Date(payload.dueDate);
+  const startsAt = new Date(payload.startsAt);
+  const endsAt = new Date(payload.endsAt);
+
+  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+    throw new Error('INVALID_DATES');
+  }
+
+  if (endsAt.getTime() <= startsAt.getTime()) {
+    throw new Error('INVALID_RANGE');
+  }
+
   const row = await prisma.homework.create({
     data: {
       id: createId('hw'),
@@ -373,9 +392,9 @@ export const createHomework = async (
       subject: payload.subject,
       title: payload.title,
       description: payload.description,
-      dueDate,
-      startsAt: dueDate,
-      endsAt: dueDate,
+      dueDate: endsAt,
+      startsAt,
+      endsAt,
       xpReward: payload.xpReward,
       linkedQuizId: payload.linkedQuizId ?? null,
     },
@@ -402,6 +421,259 @@ export const deleteHomework = async (homeworkId: string, teacher: AuthUser) => {
 
   await prisma.homework.delete({ where: { id: row.id } });
   return toHomework(row);
+};
+
+export const getHomeworkAnalytics = async (homeworkId: string, teacher: AuthUser) => {
+  if (!teacher.classId) {
+    return null;
+  }
+
+  const homeworkRow = await prisma.homework.findFirst({
+    where: { id: homeworkId, classId: teacher.classId },
+  });
+
+  if (!homeworkRow) {
+    return null;
+  }
+
+  const homework = toHomework(homeworkRow);
+  const members = await prisma.classMembership.findMany({
+    where: { classId: teacher.classId },
+    include: { User: true },
+  });
+
+  const submissions = await prisma.homeworkSubmission.findMany({
+    where: { homeworkId },
+  });
+  const submissionByStudent = new Map(submissions.map((row) => [row.studentId, row]));
+
+  let quizSummary: {
+    quizId: string;
+    quizTitle: string;
+    questionsCount: number;
+    completedCount: number;
+    averagePercent: number | null;
+    topScorers: Array<{
+      studentId: string;
+      displayName: string;
+      quizPercent: number | null;
+      quizScore: number | null;
+      quizTotal: number | null;
+      rank?: number;
+    }>;
+  } | null = null;
+
+  const quizAttemptsByStudent = new Map<
+    string,
+    { score: number; total: number; percent: number }
+  >();
+
+  if (homework.linkedQuizId) {
+    const quizRow = await prisma.quiz.findUnique({
+      where: { id: homework.linkedQuizId },
+    });
+    if (quizRow) {
+      const quiz = toQuiz(quizRow);
+      const attempts = await prisma.quizAttempt.findMany({
+        where: { quizId: quiz.id },
+      });
+      for (const attempt of attempts) {
+        const percent =
+          attempt.total > 0 ? Math.round((attempt.score / attempt.total) * 100) : 0;
+        quizAttemptsByStudent.set(attempt.studentId, {
+          score: attempt.score,
+          total: attempt.total,
+          percent,
+        });
+      }
+
+      const scored = [...quizAttemptsByStudent.entries()]
+        .map(([studentId, attempt]) => {
+          const member = members.find((item) => item.studentId === studentId);
+          return {
+            studentId,
+            displayName: member?.User.displayName ?? 'Учень',
+            quizPercent: attempt.percent,
+            quizScore: attempt.score,
+            quizTotal: attempt.total,
+          };
+        })
+        .sort((a, b) => (b.quizPercent ?? 0) - (a.quizPercent ?? 0))
+        .map((item, index) => ({ ...item, rank: index + 1 }));
+
+      const averagePercent =
+        scored.length > 0
+          ? Math.round(
+              scored.reduce((sum, item) => sum + (item.quizPercent ?? 0), 0) / scored.length,
+            )
+          : null;
+
+      quizSummary = {
+        quizId: quiz.id,
+        quizTitle: quiz.title,
+        questionsCount: quiz.questions.length,
+        completedCount: scored.length,
+        averagePercent,
+        topScorers: scored.slice(0, 5),
+      };
+    }
+  }
+
+  const participants = members.map((member) => {
+    const submission = submissionByStudent.get(member.studentId);
+    const quizAttempt = quizAttemptsByStudent.get(member.studentId);
+    const status = submission?.status ?? 'not_started';
+    const participated = Boolean(submission) || Boolean(quizAttempt);
+
+    return {
+      studentId: member.studentId,
+      displayName: member.User.displayName,
+      avatarEmoji: member.User.avatarEmoji,
+      avatarColor: member.User.avatarColor,
+      status,
+      submittedAt: submission?.submittedAt?.toISOString(),
+      answerPreview: submission?.answer
+        ? submission.answer.slice(0, 120)
+        : undefined,
+      quizScore: quizAttempt?.score ?? null,
+      quizTotal: quizAttempt?.total ?? null,
+      quizPercent: quizAttempt?.percent ?? null,
+      participated,
+      rank: null as number | null,
+    };
+  });
+
+  const checkingCount = participants.filter((item) => item.status === 'checking').length;
+  const participatedCount = participants.filter((item) => item.participated).length;
+
+  return {
+    homework: {
+      ...homework,
+      isQuizLinked: Boolean(homework.linkedQuizId),
+    },
+    studentsTotal: members.length,
+    participatedCount,
+    checkingCount,
+    participants,
+    quizSummary,
+  };
+};
+
+export const getQuestForStudent = async (questId: string, studentId: string) => {
+  const questRow = await prisma.quest.findUnique({ where: { id: questId } });
+  if (!questRow) {
+    return null;
+  }
+
+  const quest = toQuest(questRow);
+  const progressRow = await prisma.questProgress.findUnique({
+    where: { questId_studentId: { questId, studentId } },
+  });
+  const progress = progressRow
+    ? toQuestProgress(progressRow)
+    : { questId, studentId, currentStep: 0, completed: false };
+
+  const student = await prisma.user.findUnique({ where: { id: studentId } });
+  const classRoom = student?.classId
+    ? await prisma.classRoom.findUnique({ where: { id: student.classId } })
+    : null;
+
+  return {
+    ...quest,
+    questions: (quest.questions ?? []).map(({ correctIndex: _c, ...rest }) => rest),
+    currentStep: progress.currentStep,
+    completed: progress.completed,
+    grade: classRoom?.grade as 1 | 2 | 3 | 4 | undefined,
+  };
+};
+
+export const answerQuest = async (
+  questId: string,
+  studentId: string,
+  stepIndex: number,
+  optionIndex: number,
+) => {
+  const questRow = await prisma.quest.findUnique({ where: { id: questId } });
+  if (!questRow) {
+    return null;
+  }
+
+  const quest = toQuest(questRow);
+  const questions = quest.questions ?? [];
+  const question = questions[stepIndex];
+
+  if (!question) {
+    throw new Error('INVALID_STEP');
+  }
+
+  let progressRow = await prisma.questProgress.findUnique({
+    where: { questId_studentId: { questId, studentId } },
+  });
+
+  if (!progressRow) {
+    progressRow = await prisma.questProgress.create({
+      data: {
+        id: createId('qp'),
+        questId,
+        studentId,
+        currentStep: 0,
+        completed: false,
+      },
+    });
+  }
+
+  const progress = toQuestProgress(progressRow);
+  if (progress.completed) {
+    return {
+      correct: true,
+      message: 'Квест уже завершено',
+      xpEarned: 0,
+      progress,
+      profile: null,
+    };
+  }
+
+  if (stepIndex !== progress.currentStep) {
+    throw new Error('WRONG_STEP');
+  }
+
+  const correct = optionIndex === question.correctIndex;
+  if (!correct) {
+    return {
+      correct: false,
+      message: 'Не зовсім. Спробуй інший варіант!',
+      xpEarned: 0,
+      progress,
+      profile: null,
+    };
+  }
+
+  const nextStep = progress.currentStep + 1;
+  const completed = nextStep >= quest.totalSteps || nextStep >= questions.length;
+  const updated = await prisma.questProgress.update({
+    where: { id: progressRow.id },
+    data: {
+      currentStep: completed ? Math.max(quest.totalSteps, questions.length) : nextStep,
+      completed,
+    },
+  });
+
+  let profile = null;
+  let xpEarned = 0;
+  if (completed) {
+    profile = await addXp(studentId, quest.xpReward, `Квест: ${quest.title}`);
+    xpEarned = quest.xpReward;
+  }
+
+  return {
+    correct: true,
+    message: completed
+      ? `Квест завершено! +${quest.xpReward} XP`
+      : 'Правильно! Рухаємось далі.',
+    xpEarned,
+    progress: toQuestProgress(updated),
+    profile,
+  };
 };
 
 export const getQuizTemplates = async (subject?: string) => {

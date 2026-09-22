@@ -99,6 +99,8 @@ model ClassRoom {
   Post                           Post[]
   Quest                          Quest[]
   Quiz                           Quiz[]
+  LessonSlot                     LessonSlot[]
+  PeriodicTask                   PeriodicTask[]
   User_User_classIdToClassRoom   User[]             @relation("User_classIdToClassRoom")
 
   @@index([schoolId], map: "ClassRoom_schoolId_fkey")
@@ -185,7 +187,9 @@ model Post {
   imageEmoji String?
   category   String?
   status     String
+  pinned     Boolean   @default(false)
   createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   reactions  Json
   User       User      @relation(fields: [authorId], references: [id])
   ClassRoom  ClassRoom @relation(fields: [classId], references: [id])
@@ -194,6 +198,51 @@ model Post {
   @@index([authorId])
   @@index([classId, status])
   @@index([schoolId], map: "Post_schoolId_fkey")
+}
+
+model LessonSlot {
+  id           String    @id
+  classId      String
+  dayOfWeek    Int
+  period       Int
+  startsAtTime String
+  endsAtTime   String
+  subject      String
+  room         String?
+  teacherNote  String?   @db.Text
+  ClassRoom    ClassRoom @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, dayOfWeek, period])
+  @@index([classId, dayOfWeek])
+}
+
+model PeriodicTask {
+  id          String                   @id
+  classId     String
+  cadence     String
+  title       String
+  description String                   @db.Text
+  xpReward    Int
+  active      Boolean                  @default(true)
+  createdBy   String
+  createdAt   DateTime                 @default(now())
+  ClassRoom   ClassRoom                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  Completions PeriodicTaskCompletion[]
+
+  @@index([classId, cadence])
+}
+
+model PeriodicTaskCompletion {
+  id          String       @id
+  taskId      String
+  userId      String
+  periodKey   String
+  completedAt DateTime     @default(now())
+  PeriodicTask PeriodicTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  User        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId, periodKey])
+  @@index([userId])
 }
 
 model Quest {
@@ -320,6 +369,7 @@ model User {
   QuizAttempt                               QuizAttempt[]
   StudentAchievement                        StudentAchievement[]
   StudentProfile                            StudentProfile?
+  PeriodicTaskCompletion                    PeriodicTaskCompletion[]
   ClassRoom_User_classIdToClassRoom         ClassRoom?           @relation("User_classIdToClassRoom", fields: [classId], references: [id])
   School                                    School               @relation(fields: [schoolId], references: [id])
   XpTransaction                             XpTransaction[]

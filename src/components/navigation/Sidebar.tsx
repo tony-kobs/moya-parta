@@ -26,6 +26,7 @@ import { badgeForHref, useNavBadges } from '@/hooks/useNavBadges';
 const studentLinks = [
   { href: '/desk', label: 'Моя парта', icon: Armchair, tone: 'today' },
   { href: '/class', label: 'Мій клас', icon: School, tone: 'class' },
+  { href: '/board', label: 'Моя дошка', icon: LayoutDashboard, tone: 'board' },
   { href: '/quests', label: 'Квести', icon: Map, tone: 'learning' },
   { href: '/events', label: 'Події', icon: CalendarDays, tone: 'events' },
   { href: '/learning', label: 'Навчання', icon: BookOpen, tone: 'learning' },
