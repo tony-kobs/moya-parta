@@ -52,6 +52,7 @@ export interface Post {
   imageEmoji?: string;
   category?: string;
   status: string;
+  pinned?: boolean;
   createdAt: string;
   reactions: Record<string, string[]>;
   reactionCounts?: Record<string, number>;
@@ -214,6 +215,31 @@ export interface BackpackItem {
   category: 'sticker' | 'reward' | 'item' | 'avatar';
   icon: string;
   unlocked: boolean;
+}
+
+export interface LessonSlot {
+  id: string;
+  classId: string;
+  dayOfWeek: number;
+  period: number;
+  startsAtTime: string;
+  endsAtTime: string;
+  subject: string;
+  room?: string;
+  teacherNote?: string;
+}
+
+export interface PeriodicTask {
+  id: string;
+  classId: string;
+  cadence: 'daily' | 'weekly';
+  title: string;
+  description: string;
+  xpReward: number;
+  active: boolean;
+  createdAt: string;
+  completed?: boolean;
+  periodKey?: string;
 }
 
 export interface DeskData {

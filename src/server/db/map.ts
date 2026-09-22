@@ -169,7 +169,9 @@ export const toPost = (row: {
   imageEmoji: string | null;
   category: string | null;
   status: string;
+  pinned?: boolean;
   createdAt: Date;
+  updatedAt?: Date | null;
   reactions: Prisma.JsonValue;
 }): Post => ({
   id: row.id,
@@ -180,7 +182,9 @@ export const toPost = (row: {
   imageEmoji: row.imageEmoji ?? undefined,
   category: row.category ?? undefined,
   status: row.status as PostStatus,
+  pinned: Boolean(row.pinned),
   createdAt: isoRequired(row.createdAt),
+  updatedAt: iso(row.updatedAt),
   reactions: asReactions(row.reactions),
 });
 
@@ -221,20 +225,29 @@ export const toHomework = (row: {
   title: string;
   description: string;
   dueDate: Date;
+  startsAt?: Date;
+  endsAt?: Date;
   xpReward: number;
   createdBy: string;
   linkedQuizId: string | null;
-}): Homework => ({
-  id: row.id,
-  classId: row.classId,
-  subject: toSubject(row.subject),
-  title: row.title,
-  description: row.description,
-  dueDate: isoRequired(row.dueDate),
-  xpReward: row.xpReward,
-  createdBy: row.createdBy,
-  linkedQuizId: row.linkedQuizId ?? undefined,
-});
+}): Homework => {
+  const startsAt = row.startsAt ?? row.dueDate;
+  const endsAt = row.endsAt ?? row.dueDate;
+  return {
+    id: row.id,
+    classId: row.classId,
+    subject: toSubject(row.subject),
+    title: row.title,
+    description: row.description,
+    dueDate: isoRequired(row.dueDate),
+    startsAt: isoRequired(startsAt),
+    endsAt: isoRequired(endsAt),
+    xpReward: row.xpReward,
+    createdBy: row.createdBy,
+    linkedQuizId: row.linkedQuizId ?? undefined,
+    ended: endsAt.getTime() < Date.now(),
+  };
+};
 
 export const toSubmission = (row: {
   id: string;
@@ -298,6 +311,7 @@ export const toQuest = (row: {
   illustration: string;
   xpReward: number;
   totalSteps: number;
+  questions?: Prisma.JsonValue | null;
 }): Quest => ({
   id: row.id,
   classId: row.classId,
@@ -306,6 +320,7 @@ export const toQuest = (row: {
   illustration: row.illustration,
   xpReward: row.xpReward,
   totalSteps: row.totalSteps,
+  questions: asQuestions(row.questions),
 });
 
 export const toQuestProgress = (row: {

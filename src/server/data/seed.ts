@@ -445,6 +445,38 @@ export const quests: Quest[] = [
     illustration: '🧭',
     xpReward: 50,
     totalSteps: 5,
+    questions: [
+      {
+        id: 'qq-1',
+        text: 'Скільки буде 7 + 5?',
+        options: ['10', '12', '13'],
+        correctIndex: 1,
+      },
+      {
+        id: 'qq-2',
+        text: 'Яке число більше: 45 чи 54?',
+        options: ['45', '54', 'однакові'],
+        correctIndex: 1,
+      },
+      {
+        id: 'qq-3',
+        text: 'Скільки сторін у трикутника?',
+        options: ['2', '3', '4'],
+        correctIndex: 1,
+      },
+      {
+        id: 'qq-4',
+        text: '10 − 4 = ?',
+        options: ['5', '6', '7'],
+        correctIndex: 1,
+      },
+      {
+        id: 'qq-5',
+        text: 'Скільки хвилин у годині?',
+        options: ['30', '60', '100'],
+        correctIndex: 1,
+      },
+    ],
   },
   {
     id: 'quest-2',

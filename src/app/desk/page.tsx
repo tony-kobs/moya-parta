@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { AppShell } from '@/components/navigation/AppShell';
 import { Avatar } from '@/components/ui/Avatar';
@@ -14,6 +14,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { XPBar } from '@/components/ui/XPBar';
 import { HomeworkCard } from '@/components/learning/HomeworkCard';
 import { ComposePostCard } from '@/components/posts/ComposePostCard';
+import { Button } from '@/components/ui/Button';
 import { studentApi } from '@/services/api';
 import { formatEventRange } from '@/lib/format';
 import {
@@ -22,6 +23,7 @@ import {
   describeXpProgress,
   pickNextReward,
 } from '@/lib/xpProgress';
+import { useUiStore } from '@/store/uiStore';
 import styles from './desk.module.css';
 
 export default function DeskPage() {
@@ -33,6 +35,9 @@ export default function DeskPage() {
 }
 
 function DeskContent() {
+  const showToast = useUiStore((state) => state.showToast);
+  const queryClient = useQueryClient();
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['desk'],
     queryFn: studentApi.getDesk,
@@ -41,6 +46,28 @@ function DeskContent() {
   const { data: backpack } = useQuery({
     queryKey: ['backpack'],
     queryFn: studentApi.getBackpack,
+  });
+
+  const { data: periodicTasks } = useQuery({
+    queryKey: ['periodic-tasks'],
+    queryFn: studentApi.getPeriodicTasks,
+  });
+
+  const completePeriodic = useMutation({
+    mutationFn: studentApi.completePeriodicTask,
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({ queryKey: ['periodic-tasks'] });
+      void queryClient.invalidateQueries({ queryKey: ['desk'] });
+      void queryClient.invalidateQueries({ queryKey: ['class'] });
+      if (result.alreadyCompleted) {
+        showToast('Уже виконано за цей період');
+      } else {
+        showToast(`Готово! +${result.xpEarned} XP`);
+      }
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : 'Помилка', 'error');
+    },
   });
 
   const [bannerImageFailed, setBannerImageFailed] = useState(false);
@@ -148,13 +175,37 @@ function DeskContent() {
 
           <SectionCard
             tone="wins"
-            title="Маленька ціль"
+            title="Щоденні й щотижневі"
             iconSrc="/brand/dash-wins.png"
           >
-            <div className={styles.goalRow}>
-              <p className={styles.goalTitle}>{data.dailyGoal.title}</p>
-              <span className={styles.goalXp}>+{data.dailyGoal.xp} XP</span>
-            </div>
+            {!periodicTasks || periodicTasks.length === 0 ? (
+              <p className={styles.emptyLine}>Поки немає періодичних завдань</p>
+            ) : (
+              <div className={styles.stack}>
+                {periodicTasks.map((task) => (
+                  <div key={task.id} className={styles.goalRow}>
+                    <div>
+                      <p className={styles.goalTitle}>
+                        {task.cadence === 'daily' ? 'Сьогодні' : 'Цей тиждень'}:{' '}
+                        {task.title}
+                      </p>
+                      <p className={styles.emptyLine}>{task.description}</p>
+                    </div>
+                    {task.completed ? (
+                      <span className={styles.goalXp}>✓ +{task.xpReward}</span>
+                    ) : (
+                      <Button
+                        size="md"
+                        disabled={completePeriodic.isPending}
+                        onClick={() => completePeriodic.mutate(task.id)}
+                      >
+                        +{task.xpReward} XP
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </SectionCard>
         </section>
 
